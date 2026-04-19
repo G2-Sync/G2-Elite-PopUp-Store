@@ -24,10 +24,10 @@ export default async function AdminPage({ params }: AdminPageProps) {
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
-      <h1 className="mb-2 text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <h1 className="mb-2 text-2xl font-bold tracking-tight text-zinc-900">
         {org.name} Admin
       </h1>
-      <p className="mb-8 text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="mb-8 text-sm text-zinc-500">
         Manage your pop-up store.
       </p>
 
@@ -36,12 +36,12 @@ export default async function AdminPage({ params }: AdminPageProps) {
           <Link
             key={section.href}
             href={section.href}
-            className="group flex flex-col gap-1 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+            className="group flex flex-col gap-1 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
           >
-            <span className="text-sm font-semibold text-zinc-900 group-hover:underline dark:text-zinc-50">
+            <span className="text-sm font-semibold text-zinc-900 group-hover:underline">
               {section.label}
             </span>
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            <span className="text-xs text-zinc-500">
               {section.description}
             </span>
           </Link>

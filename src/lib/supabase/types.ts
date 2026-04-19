@@ -140,64 +140,81 @@ export type OrderItem = {
 // Database interface for @supabase/supabase-js generic typing
 // ---------------------------------------------------------------------------
 
-type OmitGenerated<T> = Omit<T, 'id' | 'created_at'> & {
+// Make nullable fields optional in Insert types (so callers can omit them)
+type NullableKeys<T> = { [K in keyof T]: null extends T[K] ? K : never }[keyof T];
+type NonNullableKeys<T> = { [K in keyof T]: null extends T[K] ? never : K }[keyof T];
+type MakeNullableOptional<T> = Partial<Pick<T, NullableKeys<T>>> & Pick<T, NonNullableKeys<T>>;
+
+type OmitGenerated<T> = MakeNullableOptional<Omit<T, 'id' | 'created_at'>> & {
   id?: string;
   created_at?: string;
 };
 
-type OmitTimestamps<T> = Omit<T, 'id' | 'created_at' | 'updated_at'> & {
+type OmitTimestamps<T> = MakeNullableOptional<Omit<T, 'id' | 'created_at' | 'updated_at'>> & {
   id?: string;
   created_at?: string;
   updated_at?: string;
 };
 
 export type Database = {
+  __InternalSupabase: {
+    PostgrestVersion: '12';
+  };
   public: {
     Tables: {
       organizations: {
         Row: Organization;
         Insert: OmitTimestamps<Organization>;
         Update: Partial<Omit<Organization, 'id'>>;
+        Relationships: [];
       };
       organization_members: {
         Row: OrganizationMember;
         Insert: OmitGenerated<OrganizationMember>;
         Update: Partial<Omit<OrganizationMember, 'id'>>;
+        Relationships: [];
       };
       super_admins: {
         Row: SuperAdmin;
         Insert: Omit<SuperAdmin, 'granted_at'> & { granted_at?: string };
         Update: Partial<SuperAdmin>;
+        Relationships: [];
       };
       payment_accounts: {
         Row: PaymentAccount;
         Insert: OmitGenerated<PaymentAccount>;
         Update: Partial<Omit<PaymentAccount, 'id'>>;
+        Relationships: [];
       };
       categories: {
         Row: Category;
         Insert: OmitGenerated<Category>;
         Update: Partial<Omit<Category, 'id'>>;
+        Relationships: [];
       };
       products: {
         Row: Product;
         Insert: OmitTimestamps<Omit<Product, 'categories' | 'product_images'>>;
         Update: Partial<Omit<Product, 'id' | 'categories' | 'product_images'>>;
+        Relationships: [];
       };
       product_images: {
         Row: ProductImage;
         Insert: OmitGenerated<ProductImage>;
         Update: Partial<Omit<ProductImage, 'id'>>;
+        Relationships: [];
       };
       orders: {
         Row: Order;
         Insert: OmitTimestamps<Omit<Order, 'order_items'>>;
         Update: Partial<Omit<Order, 'id' | 'order_items'>>;
+        Relationships: [];
       };
       order_items: {
         Row: OrderItem;
         Insert: OmitGenerated<OrderItem>;
         Update: Partial<Omit<OrderItem, 'id'>>;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
@@ -212,5 +229,6 @@ export type Database = {
       };
     };
     Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 };

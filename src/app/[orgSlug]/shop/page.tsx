@@ -31,13 +31,13 @@ export default async function ShopPage({ params }: ShopPageProps) {
 
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
-      <h1 className="mb-8 text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <h1 className="mb-8 text-2xl font-bold tracking-tight text-zinc-900">
         Shop
       </h1>
 
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <p className="text-zinc-500 dark:text-zinc-400">
+          <p className="text-zinc-500">
             No products available yet. Check back soon!
           </p>
         </div>
@@ -51,10 +51,10 @@ export default async function ShopPage({ params }: ShopPageProps) {
             return (
               <div
                 key={product.id}
-                className="group relative flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+                className="group relative flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition-shadow hover:shadow-md"
               >
                 {/* Product image */}
-                <div className="aspect-square w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                <div className="aspect-square w-full overflow-hidden bg-zinc-100">
                   {primaryImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -63,7 +63,7 @@ export default async function ShopPage({ params }: ShopPageProps) {
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-zinc-400 dark:text-zinc-600">
+                    <div className="flex h-full w-full items-center justify-center text-zinc-400">
                       <span className="text-xs uppercase tracking-widest">No image</span>
                     </div>
                   )}
@@ -71,17 +71,17 @@ export default async function ShopPage({ params }: ShopPageProps) {
 
                 {/* Product info */}
                 <div className="flex flex-1 flex-col gap-1 p-4">
-                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                  <h2 className="text-sm font-semibold text-zinc-900">
                     {product.name}
                   </h2>
 
                   <div className="mt-auto flex items-center justify-between pt-3">
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <span className="text-sm font-medium text-zinc-700">
                       {formatPrice(product.price_cents)}
                     </span>
 
                     {isSoldOut && (
-                      <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                      <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-500">
                         Sold Out
                       </span>
                     )}
