@@ -65,8 +65,27 @@ export default async function EditOrgPage({ params }: EditOrgPageProps) {
         <span className="font-mono text-zinc-900">{org.slug}</span>
       </nav>
 
-      <h1 className="mb-2 text-2xl font-bold tracking-tight text-zinc-900">{org.name}</h1>
-      <p className="mb-8 font-mono text-xs text-zinc-400">{org.slug}</p>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">{org.name}</h1>
+          <p className="mt-1 font-mono text-xs text-zinc-400">{org.slug}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/${org.slug}`}
+            target="_blank"
+            className="inline-flex items-center rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            View Storefront ↗
+          </Link>
+          <Link
+            href={`/${org.slug}/admin`}
+            className="inline-flex items-center rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+          >
+            Open Admin Panel →
+          </Link>
+        </div>
+      </div>
 
       {/* Main edit form */}
       <div className="mb-8 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">

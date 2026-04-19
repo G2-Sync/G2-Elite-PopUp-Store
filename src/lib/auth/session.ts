@@ -81,10 +81,15 @@ export async function requireSuperAdmin() {
 
 /**
  * Returns true if the current user is an admin member of the given org.
+ * Super-admins are treated as admins of every org (so they can test + support
+ * any tenant without needing a separate invited account).
  */
 export async function isCurrentUserOrgAdmin(orgId: string): Promise<boolean> {
   const user = await getCurrentUser();
   if (!user) return false;
+
+  // Super-admins have implicit admin access to every org.
+  if (await isCurrentUserSuperAdmin()) return true;
 
   const supabase = await createClient();
   const { data, error } = await supabase
