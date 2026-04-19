@@ -55,3 +55,14 @@ body {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+/* Per-org theme variables — overridden by OrgThemeProvider for org pages */
+:root {
+  --org-primary: #0F172A;
+  --org-accent: #F59E0B;
+  --org-font: 'Inter', sans-serif;
+}
+
+body {
+  font-family: var(--org-font);
+}
