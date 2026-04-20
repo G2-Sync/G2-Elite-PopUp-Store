@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { getOrgContext } from '@/lib/org/context';
 import OrgThemeProvider from '@/components/OrgThemeProvider';
 import CartIconBadge from '@/components/CartIconBadge';
+import { isCurrentUserOrgAdmin } from '@/lib/auth/session';
 
 interface OrgLayoutProps {
   children: React.ReactNode;
@@ -19,6 +20,10 @@ interface OrgLayoutProps {
 export default async function OrgLayout({ children, params }: OrgLayoutProps) {
   const { orgSlug } = await params;
   const org = await getOrgContext({ orgSlug });
+
+  // Show a subtle "Admin" link in the storefront nav if the current user
+  // has admin access to THIS org (super-admins count as admins everywhere).
+  const showAdminLink = await isCurrentUserOrgAdmin(org.id);
 
   return (
     <OrgThemeProvider org={org}>
@@ -60,6 +65,17 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps) {
 
             {/* Cart icon with live item count badge */}
             <CartIconBadge orgSlug={orgSlug} />
+
+            {/* Admin shortcut — only visible to org admins / super-admins */}
+            {showAdminLink && (
+              <Link
+                href={`/${orgSlug}/admin`}
+                className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-3 py-1 text-xs font-semibold text-zinc-700 transition-colors hover:border-zinc-900 hover:text-zinc-900"
+                title="Return to admin dashboard"
+              >
+                ← Admin
+              </Link>
+            )}
           </nav>
         </div>
       </header>
