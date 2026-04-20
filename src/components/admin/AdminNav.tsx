@@ -13,6 +13,7 @@ const navItems = [
   { label: 'Products', path: '/products' },
   { label: 'Categories', path: '/categories' },
   { label: 'Orders', path: '/orders' },
+  { label: 'Reports', path: '/reports' },
   { label: 'Settings', path: '/settings' },
 ] as const;
 
