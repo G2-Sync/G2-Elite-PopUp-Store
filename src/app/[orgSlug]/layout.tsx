@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingCart } from 'lucide-react';
 import { getOrgContext } from '@/lib/org/context';
 import OrgThemeProvider from '@/components/OrgThemeProvider';
+import CartIconBadge from '@/components/CartIconBadge';
 
 interface OrgLayoutProps {
   children: React.ReactNode;
@@ -58,14 +58,8 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps) {
               Shop
             </Link>
 
-            {/* Cart stub — wired up in Phase 3 */}
-            <Link
-              href={`/${orgSlug}/cart`}
-              className="relative flex h-9 w-9 items-center justify-center rounded-full text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
-              aria-label="View cart"
-            >
-              <ShoppingCart size={20} aria-hidden="true" />
-            </Link>
+            {/* Cart icon with live item count badge */}
+            <CartIconBadge orgSlug={orgSlug} />
           </nav>
         </div>
       </header>

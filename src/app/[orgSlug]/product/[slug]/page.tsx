@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getOrgContext } from '@/lib/org/context';
 import { formatPrice } from '@/lib/utils';
 import type { Product, ProductImage, Category } from '@/lib/supabase/types';
+import AddToCartButton from './_add-to-cart-button';
 
 interface ProductDetailPageProps {
   params: Promise<{ orgSlug: string; slug: string }>;
@@ -157,24 +158,17 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
             <p className="text-sm leading-relaxed text-zinc-600">{product.description}</p>
           )}
 
-          {/* Add to cart stub */}
+          {/* Add to Cart */}
           <div className="mt-2">
-            <button
-              type="button"
-              disabled={isSoldOut}
-              className="w-full rounded-lg px-6 py-3 text-sm font-semibold shadow-sm transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
-              style={{
-                backgroundColor: 'var(--org-accent)',
-                color: 'var(--org-primary)',
-              }}
-            >
-              {isSoldOut ? 'Sold Out' : 'Add to Cart'}
-            </button>
-            {isSoldOut && (
-              <p className="mt-2 text-center text-xs text-zinc-400">
-                This product is currently out of stock.
-              </p>
-            )}
+            <AddToCartButton
+              orgSlug={orgSlug}
+              productId={product.id}
+              productName={product.name}
+              priceCents={product.price_cents}
+              imageUrl={primaryImage?.url ?? null}
+              maxStock={product.stock}
+              isSoldOut={isSoldOut}
+            />
           </div>
         </div>
       </div>
