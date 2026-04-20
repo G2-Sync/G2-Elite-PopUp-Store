@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { requireSuperAdmin } from '@/lib/auth/session';
 import { createClient } from '@/lib/supabase/server';
+import SuperAdminNav from '@/components/admin/SuperAdminNav';
 
 interface SuperAdminLayoutProps {
   children: React.ReactNode;
@@ -10,14 +11,13 @@ interface SuperAdminLayoutProps {
  * Super admin layout — /super-admin/*
  *
  * Guards the entire section: redirects to /login if the visitor is not an
- * authenticated super-admin (via requireSuperAdmin).
+ * authenticated super-admin (via requireSuperAdmin). Renders a slim top bar
+ * with brand + user controls plus a left sidebar with section navigation.
  */
 export default async function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
-  // This will redirect to /login (no session) or / (not super-admin) if the
-  // check fails. The function returns the user on success.
   await requireSuperAdmin();
 
-  // Fetch current user email for the nav display
+  // Fetch current user email for the top bar display
   const supabase = await createClient();
   const {
     data: { user },
@@ -25,9 +25,9 @@ export default async function SuperAdminLayout({ children }: SuperAdminLayoutPro
 
   return (
     <div className="flex min-h-full flex-col">
-      {/* Top nav */}
+      {/* Slim top bar */}
       <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/90 backdrop-blur-sm">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex h-14 items-center justify-between px-4 sm:px-6">
           {/* Brand */}
           <Link
             href="/super-admin"
@@ -36,28 +36,10 @@ export default async function SuperAdminLayout({ children }: SuperAdminLayoutPro
             G2 Elite — Super Admin
           </Link>
 
-          {/* Center nav */}
-          <nav className="flex items-center gap-6" aria-label="Super admin navigation">
-            <Link
-              href="/super-admin"
-              className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/super-admin/organizations"
-              className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900"
-            >
-              Organizations
-            </Link>
-          </nav>
-
           {/* User + sign out */}
           <div className="flex items-center gap-4">
             {user?.email && (
-              <span className="hidden text-xs text-zinc-400 sm:block">
-                {user.email}
-              </span>
+              <span className="hidden text-xs text-zinc-400 sm:block">{user.email}</span>
             )}
             <Link
               href="/logout"
@@ -69,8 +51,16 @@ export default async function SuperAdminLayout({ children }: SuperAdminLayoutPro
         </div>
       </header>
 
-      {/* Page content */}
-      <div className="flex flex-1 flex-col">{children}</div>
+      {/* Main layout: sidebar + content */}
+      <div className="flex flex-1">
+        {/* Sidebar */}
+        <aside className="w-60 shrink-0 border-r border-zinc-200 bg-white">
+          <SuperAdminNav />
+        </aside>
+
+        {/* Content */}
+        <div className="flex flex-1 flex-col bg-zinc-50">{children}</div>
+      </div>
     </div>
   );
 }
