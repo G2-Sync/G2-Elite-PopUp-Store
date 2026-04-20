@@ -40,7 +40,10 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps) {
                 className="h-8 w-auto object-contain"
               />
             ) : (
-              <span className="text-sm font-extrabold uppercase tracking-widest text-zinc-900">
+              <span
+                className="text-sm font-extrabold uppercase tracking-widest"
+                style={{ color: 'var(--org-primary)' }}
+              >
                 {org.name}
               </span>
             )}
@@ -71,9 +74,16 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps) {
       <div className="flex flex-1 flex-col">{children}</div>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-200 bg-white py-8">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-xs text-zinc-400">
+      <footer
+        className="py-10"
+        style={{ backgroundColor: 'var(--org-primary)' }}
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-sm font-semibold text-white">{org.name}</p>
+          {org.tagline && (
+            <p className="mt-1 text-xs text-white/70">{org.tagline}</p>
+          )}
+          <p className="mt-4 text-xs text-white/50">
             &copy; {new Date().getFullYear()} {org.name}. All rights reserved.
           </p>
         </div>

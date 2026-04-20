@@ -76,12 +76,16 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
         <div className="flex flex-wrap gap-2">
           <Link
             href={sort ? `${base}?sort=${sort}` : base}
-            className={[
-              'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+            className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+            style={
               !activeCategory
-                ? 'border-zinc-900 bg-zinc-900 text-white'
-                : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400',
-            ].join(' ')}
+                ? {
+                    backgroundColor: 'var(--org-primary)',
+                    borderColor: 'var(--org-primary)',
+                    color: 'var(--org-accent)',
+                  }
+                : { borderColor: '#e4e4e7', backgroundColor: '#ffffff', color: '#52525b' }
+            }
           >
             All
           </Link>
@@ -89,16 +93,21 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
             const href = sort
               ? `${base}?category=${cat.slug}&sort=${sort}`
               : `${base}?category=${cat.slug}`;
+            const isActive = activeCategory?.id === cat.id;
             return (
               <Link
                 key={cat.id}
                 href={href}
-                className={[
-                  'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-                  activeCategory?.id === cat.id
-                    ? 'border-zinc-900 bg-zinc-900 text-white'
-                    : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400',
-                ].join(' ')}
+                className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+                style={
+                  isActive
+                    ? {
+                        backgroundColor: 'var(--org-primary)',
+                        borderColor: 'var(--org-primary)',
+                        color: 'var(--org-accent)',
+                      }
+                    : { borderColor: '#e4e4e7', backgroundColor: '#ffffff', color: '#52525b' }
+                }
               >
                 {cat.name}
               </Link>

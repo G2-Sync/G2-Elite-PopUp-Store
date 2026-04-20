@@ -162,7 +162,11 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
             <button
               type="button"
               disabled={isSoldOut}
-              className="w-full rounded-lg bg-zinc-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-lg px-6 py-3 text-sm font-semibold shadow-sm transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+              style={{
+                backgroundColor: 'var(--org-accent)',
+                color: 'var(--org-primary)',
+              }}
             >
               {isSoldOut ? 'Sold Out' : 'Add to Cart'}
             </button>

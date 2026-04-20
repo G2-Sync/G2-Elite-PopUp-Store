@@ -141,6 +141,22 @@ export default function BrandingForm({ org }: BrandingFormProps) {
             disabled={isPending}
           />
         </div>
+
+        {/* Live preview of how the palette will look on the storefront */}
+        <div className="mt-5 rounded-xl border border-zinc-200 p-5" style={{ backgroundColor: primaryColor }}>
+          <p className="text-xs uppercase tracking-widest text-white/70">Preview</p>
+          <p className="mt-2 text-xl font-bold text-white">{org.name}</p>
+          {org.tagline && (
+            <p className="mt-1 text-sm text-white/80">{org.tagline}</p>
+          )}
+          <button
+            type="button"
+            className="mt-4 inline-flex rounded-full px-5 py-2 text-sm font-semibold shadow-sm"
+            style={{ backgroundColor: accentColor, color: primaryColor }}
+          >
+            Shop Now
+          </button>
+        </div>
       </section>
 
       {/* Typography */}
