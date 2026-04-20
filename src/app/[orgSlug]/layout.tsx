@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { getOrgContext } from '@/lib/org/context';
 import OrgThemeProvider from '@/components/OrgThemeProvider';
 import CartIconBadge from '@/components/CartIconBadge';
-import { isCurrentUserOrgAdmin } from '@/lib/auth/session';
+import { isCurrentUserOrgAdmin, isCurrentUserSuperAdmin } from '@/lib/auth/session';
 
 interface OrgLayoutProps {
   children: React.ReactNode;
@@ -23,7 +23,17 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps) {
 
   // Show a subtle "Admin" link in the storefront nav if the current user
   // has admin access to THIS org (super-admins count as admins everywhere).
-  const showAdminLink = await isCurrentUserOrgAdmin(org.id);
+  // For super-admins, the link returns to the super-admin's edit-org page,
+  // which is the natural hub they came from ("View Storefront" button).
+  // For regular org admins, it returns to their org's admin dashboard.
+  const [showAdminLink, isSuper] = await Promise.all([
+    isCurrentUserOrgAdmin(org.id),
+    isCurrentUserSuperAdmin(),
+  ]);
+  const adminLinkHref = isSuper
+    ? `/super-admin/organizations/${org.id}`
+    : `/${orgSlug}/admin`;
+  const adminLinkLabel = isSuper ? '← Super Admin' : '← Admin';
 
   return (
     <OrgThemeProvider org={org}>
@@ -66,14 +76,20 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps) {
             {/* Cart icon with live item count badge */}
             <CartIconBadge orgSlug={orgSlug} />
 
-            {/* Admin shortcut — only visible to org admins / super-admins */}
+            {/* Admin shortcut — only visible to org admins / super-admins.
+                Super-admins return to the org's edit page (their hub);
+                regular org admins return to /{slug}/admin. */}
             {showAdminLink && (
               <Link
-                href={`/${orgSlug}/admin`}
+                href={adminLinkHref}
                 className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-3 py-1 text-xs font-semibold text-zinc-700 transition-colors hover:border-zinc-900 hover:text-zinc-900"
-                title="Return to admin dashboard"
+                title={
+                  isSuper
+                    ? 'Return to super-admin'
+                    : 'Return to admin dashboard'
+                }
               >
-                ← Admin
+                {adminLinkLabel}
               </Link>
             )}
           </nav>
