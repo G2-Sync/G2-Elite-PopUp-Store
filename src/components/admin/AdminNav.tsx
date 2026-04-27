@@ -8,13 +8,17 @@ interface AdminNavProps {
   orgSlug: string;
 }
 
+// `exact: true` means the item is only active on an exact path match —
+// useful for parent items like /settings whose nested routes have their own
+// nav entry (e.g. /settings/payments).
 const navItems = [
-  { label: 'Dashboard', path: '' },
-  { label: 'Products', path: '/products' },
-  { label: 'Categories', path: '/categories' },
-  { label: 'Orders', path: '/orders' },
-  { label: 'Reports', path: '/reports' },
-  { label: 'Settings', path: '/settings' },
+  { label: 'Dashboard', path: '', exact: true },
+  { label: 'Products', path: '/products', exact: false },
+  { label: 'Categories', path: '/categories', exact: false },
+  { label: 'Orders', path: '/orders', exact: false },
+  { label: 'Reports', path: '/reports', exact: false },
+  { label: 'Payments', path: '/settings/payments', exact: false },
+  { label: 'Settings', path: '/settings', exact: true },
 ] as const;
 
 export default function AdminNav({ orgSlug }: AdminNavProps) {
@@ -23,13 +27,14 @@ export default function AdminNav({ orgSlug }: AdminNavProps) {
 
   return (
     <nav className="flex flex-col gap-1 px-3 py-4">
-      {navItems.map(({ label, path }) => {
+      {navItems.map(({ label, path, exact }) => {
         const href = `${base}${path}`;
-        // Dashboard is active only when exactly on /admin
         const isActive =
           path === ''
             ? pathname === base || pathname === `${base}/`
-            : pathname === href || pathname.startsWith(`${href}/`);
+            : exact
+              ? pathname === href
+              : pathname === href || pathname.startsWith(`${href}/`);
 
         return (
           <Link

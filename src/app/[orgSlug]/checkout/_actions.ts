@@ -2,6 +2,8 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { ShippingAddress, PaymentProvider } from '@/lib/supabase/types';
+import { resolveSquareForOrg } from '@/lib/payments/routing';
+import { createPayment } from '@/lib/payments/square';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -13,6 +15,12 @@ interface PlaceOrderInput {
   shippingAddress: ShippingAddress;
   items: { productId: string; quantity: number }[];
   provider: PaymentProvider;
+  /**
+   * Card token from the Square Web Payments SDK (only required when
+   * provider === 'square' AND a real Square account is configured —
+   * either platform sandbox or org-connected).
+   */
+  squareCardToken?: string;
 }
 
 type PlaceOrderResult =
@@ -84,7 +92,7 @@ export async function placeOrder(
   for (const lineItem of input.items) {
     const product = productMap.get(lineItem.productId);
     if (!product || !product.is_active) {
-      return { ok: false, error: `Product not found or unavailable.` };
+      return { ok: false, error: 'Product not found or unavailable.' };
     }
     if (lineItem.quantity > product.stock) {
       return {
@@ -101,7 +109,42 @@ export async function placeOrder(
     subtotalCents += product.price_cents * lineItem.quantity;
   }
 
-  // 6. Generate order number (with one collision retry)
+  // 6. Process payment based on provider
+  // Stripe and PayPal are still mock. Square goes through the routing helper
+  // which picks: connected | platform_sandbox | mock automatically.
+  let paymentId = `test_${crypto.randomUUID()}`;
+
+  if (input.provider === 'square') {
+    const square = await resolveSquareForOrg(orgId);
+
+    if (square.mode !== 'mock') {
+      // Real Square sandbox or connected account — must have a card token
+      if (!input.squareCardToken) {
+        return {
+          ok: false,
+          error: 'Card information is required to complete payment.',
+        };
+      }
+      try {
+        const payment = await createPayment({
+          accessToken: square.accessToken,
+          locationId: square.locationId,
+          amountCents: subtotalCents,
+          sourceId: input.squareCardToken,
+          idempotencyKey: crypto.randomUUID(),
+          buyerEmailAddress: input.customerEmail.trim().toLowerCase(),
+        });
+        paymentId = payment.id;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Payment failed. Please try again.';
+        return { ok: false, error: message };
+      }
+    }
+    // mode === 'mock' — paymentId stays as test_... (existing behavior)
+  }
+
+  // 7. Generate order number (with one collision retry)
   let orderNumber = generateOrderNumber(orgSlug);
   const { data: existing } = await admin
     .from('orders')
@@ -113,9 +156,7 @@ export async function placeOrder(
     orderNumber = generateOrderNumber(orgSlug);
   }
 
-  // 7. Insert order
-  const paymentId = 'test_' + crypto.randomUUID();
-
+  // 8. Insert order
   const { data: orderData, error: orderError } = await admin
     .from('orders')
     .insert({
@@ -140,7 +181,7 @@ export async function placeOrder(
 
   const orderId = orderData.id;
 
-  // 8. Insert order items
+  // 9. Insert order items
   const orderItemInserts = input.items.map((lineItem) => {
     const product = productMap.get(lineItem.productId)!;
     return {
@@ -155,19 +196,37 @@ export async function placeOrder(
   const { error: itemsError } = await admin.from('order_items').insert(orderItemInserts);
 
   if (itemsError) {
-    // Order exists but items failed — still return success, admin can reconcile
     console.error('[placeOrder] order_items insert failed:', itemsError);
   }
 
-  // 9. Decrement stock for each product
+  // 10. Decrement stock for each product
   for (const lineItem of input.items) {
     const product = productMap.get(lineItem.productId)!;
     const newStock = Math.max(0, product.stock - lineItem.quantity);
-    await admin
-      .from('products')
-      .update({ stock: newStock })
-      .eq('id', lineItem.productId);
+    await admin.from('products').update({ stock: newStock }).eq('id', lineItem.productId);
   }
 
   return { ok: true, orderNumber };
+}
+
+// ---------------------------------------------------------------------------
+// Server-only helper for the checkout page to know if Square is "real"
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true if a real Square account (connected OR platform sandbox) is
+ * configured for this org. The checkout page uses this to decide whether to
+ * render the Square Web Payments SDK card form or just a mock button.
+ */
+export async function squareIsLive(orgSlug: string): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data: orgData } = await admin
+    .from('organizations')
+    .select('id')
+    .eq('slug', orgSlug)
+    .maybeSingle();
+  const org = orgData as { id: string } | null;
+  if (!org) return false;
+  const square = await resolveSquareForOrg(org.id);
+  return square.mode !== 'mock';
 }
