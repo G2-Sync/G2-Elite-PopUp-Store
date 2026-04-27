@@ -82,6 +82,7 @@ export default function CheckoutForm({
 
   // Square SDK state
   const [squareReady, setSquareReady] = useState(false);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
   const cardRef = useRef<SquareCardInstance | null>(null);
 
   const PROVIDERS: ProviderOption[] = [
@@ -106,11 +107,30 @@ export default function CheckoutForm({
       return;
     }
     if (!squareReal || !squareAppId || !squareLocationId) return;
-    if (typeof window === 'undefined' || !window.Square) return;
     if (cardRef.current) return; // already initialized
 
     let cancelled = false;
+
+    // Wait for window.Square to become available (handles the race where
+    // the <Script> tag hasn't finished loading yet on first render)
+    async function waitForSquareSDK(timeoutMs = 8000): Promise<boolean> {
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        if (typeof window !== 'undefined' && window.Square) return true;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      return false;
+    }
+
     (async () => {
+      const sdkAvailable = await waitForSquareSDK();
+      if (cancelled) return;
+      if (!sdkAvailable) {
+        setError(
+          'Square card form failed to load. Check your network connection (or any ad-blockers) and refresh.'
+        );
+        return;
+      }
       try {
         const payments = window.Square!.payments(squareAppId, squareLocationId);
         const card = await payments.card();
@@ -130,7 +150,7 @@ export default function CheckoutForm({
     return () => {
       cancelled = true;
     };
-  }, [provider, squareReal, squareAppId, squareLocationId]);
+  }, [provider, squareReal, squareAppId, squareLocationId, scriptLoaded]);
 
   if (items.length === 0) {
     return (
@@ -215,12 +235,12 @@ export default function CheckoutForm({
         <Script
           src={sdkUrl}
           strategy="afterInteractive"
-          onLoad={() => {
-            // Trigger re-init after script loads
-            if (provider === 'square' && !cardRef.current) {
-              setSquareReady(false);
-            }
-          }}
+          onLoad={() => setScriptLoaded(true)}
+          onError={() =>
+            setError(
+              'Could not load the Square card form (network or ad-blocker). Refresh to try again.'
+            )
+          }
         />
       )}
 
