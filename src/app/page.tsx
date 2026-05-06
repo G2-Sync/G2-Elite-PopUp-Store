@@ -1,15 +1,36 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { getCurrentUser, isCurrentUserSuperAdmin } from '@/lib/auth/session';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { resolveOrgBySlug } from '@/lib/org/resolve';
 
 /**
  * Root marketing landing page — /
  *
- * Public, static-feeling, BUT server-rendered so we can show a contextual
- * "Enter Admin" link to logged-in users. Orgs are accessed directly by slug
- * (e.g. /acme) — they are not listed here by design.
+ * Behavior:
+ *   1. If DEFAULT_ORG_SLUG env var is set AND that org exists + is active,
+ *      redirect to /{slug} (the org's branded splash). This is for domains
+ *      dedicated to a single customer (e.g. uabpractitionershop.com → /uab).
+ *   2. Otherwise, show the generic platform marketing page with role-aware
+ *      "Enter Admin" CTAs for logged-in users.
+ *
+ * Orgs are accessed directly by slug (e.g. /acme) — they are not listed here
+ * by design.
  */
 export default async function RootPage() {
+  // 1. If a default org is configured for this deployment, redirect to it.
+  //    We verify the slug resolves to an active org so a typo / deleted org
+  //    doesn't leave visitors at a 404.
+  const defaultSlug = process.env.DEFAULT_ORG_SLUG?.trim();
+  if (defaultSlug) {
+    const org = await resolveOrgBySlug(defaultSlug);
+    if (org) {
+      redirect(`/${defaultSlug}`);
+    }
+    // If the slug doesn't resolve, fall through to the marketing landing.
+    // (Better than redirecting to a 404 page.)
+  }
+
   const user = await getCurrentUser();
 
   // Figure out where a logged-in user should go when they click "Enter Admin"
