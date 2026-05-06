@@ -290,7 +290,7 @@ export default function CheckoutForm({
 
               {/* Shipping address */}
               <section className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-                <h2 className="mb-4 text-base font-semibold text-zinc-900">Shipping Address</h2>
+                <h2 className="mb-4 text-base font-semibold text-zinc-900">Billing Address</h2>
                 <div className="space-y-4">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-zinc-700" htmlFor="line1">

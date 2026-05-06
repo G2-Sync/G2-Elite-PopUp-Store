@@ -79,10 +79,10 @@ export default async function ConfirmationPage({ params, searchParams }: Confirm
             </div>
           </div>
 
-          {/* Shipping address */}
+          {/* Billing address */}
           {order.shipping_address && (
             <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-              <h2 className="mb-3 text-sm font-semibold text-zinc-900">Ship to</h2>
+              <h2 className="mb-3 text-sm font-semibold text-zinc-900">Billing Address</h2>
               <div className="space-y-0.5 text-sm text-zinc-700">
                 <p>{order.shipping_address.line1}</p>
                 {order.shipping_address.line2 && <p>{order.shipping_address.line2}</p>}
