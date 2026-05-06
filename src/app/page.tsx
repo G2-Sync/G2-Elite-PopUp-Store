@@ -1,34 +1,55 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { getCurrentUser, isCurrentUserSuperAdmin } from '@/lib/auth/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { resolveOrgBySlug } from '@/lib/org/resolve';
 
 /**
+ * Domain → default org slug mapping.
+ *
+ * When a customer-dedicated domain hits the root URL "/", redirect them to
+ * that customer's org splash page. Add a new entry here when onboarding a
+ * customer who has their own dedicated domain.
+ *
+ * The DEFAULT_ORG_SLUG env var still works as a fallback (and takes priority
+ * if set), so for new deployments you can either edit this map OR set the
+ * env var — whichever you prefer.
+ */
+const DOMAIN_TO_DEFAULT_ORG: Record<string, string> = {
+  'uabpractitionershop.com': 'uab',
+};
+
+/**
  * Root marketing landing page — /
  *
- * Behavior:
- *   1. If DEFAULT_ORG_SLUG env var is set AND that org exists + is active,
- *      redirect to /{slug} (the org's branded splash). This is for domains
- *      dedicated to a single customer (e.g. uabpractitionershop.com → /uab).
- *   2. Otherwise, show the generic platform marketing page with role-aware
- *      "Enter Admin" CTAs for logged-in users.
+ * Behavior (in priority order):
+ *   1. DEFAULT_ORG_SLUG env var set + slug resolves → redirect to /{slug}
+ *   2. Hostname matches DOMAIN_TO_DEFAULT_ORG map → redirect to /{slug}
+ *   3. Otherwise → show generic platform marketing page with role-aware
+ *      admin links for logged-in users.
  *
  * Orgs are accessed directly by slug (e.g. /acme) — they are not listed here
  * by design.
  */
 export default async function RootPage() {
-  // 1. If a default org is configured for this deployment, redirect to it.
-  //    We verify the slug resolves to an active org so a typo / deleted org
-  //    doesn't leave visitors at a 404.
-  const defaultSlug = process.env.DEFAULT_ORG_SLUG?.trim();
-  if (defaultSlug) {
-    const org = await resolveOrgBySlug(defaultSlug);
-    if (org) {
-      redirect(`/${defaultSlug}`);
-    }
-    // If the slug doesn't resolve, fall through to the marketing landing.
-    // (Better than redirecting to a 404 page.)
+  // 1. Env var takes priority (preferred — easier to change without redeploy
+  //    once Vercel UI cooperates).
+  const envSlug = process.env.DEFAULT_ORG_SLUG?.trim();
+  if (envSlug) {
+    const org = await resolveOrgBySlug(envSlug);
+    if (org) redirect(`/${envSlug}`);
+  }
+
+  // 2. Hostname-based mapping (hardcoded fallback for customer domains).
+  const headersList = await headers();
+  const rawHost = headersList.get('host')?.toLowerCase() ?? '';
+  // Strip port (e.g., "localhost:3000") and leading "www." for matching
+  const hostname = rawHost.split(':')[0].replace(/^www\./, '');
+  const mappedSlug = DOMAIN_TO_DEFAULT_ORG[hostname];
+  if (mappedSlug) {
+    const org = await resolveOrgBySlug(mappedSlug);
+    if (org) redirect(`/${mappedSlug}`);
   }
 
   const user = await getCurrentUser();
