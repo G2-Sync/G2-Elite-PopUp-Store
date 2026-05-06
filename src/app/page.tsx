@@ -17,7 +17,7 @@ import { resolveOrgBySlug } from '@/lib/org/resolve';
  * env var — whichever you prefer.
  */
 const DOMAIN_TO_DEFAULT_ORG: Record<string, string> = {
-  'uabpractitionershop.com': 'uab',
+  'uabpractitionershop.com': 'uab-pop-up-store',
 };
 
 /**
