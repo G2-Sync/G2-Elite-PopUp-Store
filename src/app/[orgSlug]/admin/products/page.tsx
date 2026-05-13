@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { getOrgContext } from '@/lib/org/context';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { formatPrice } from '@/lib/utils';
 import { toggleProductActive, deleteProduct } from '../_actions';
 import type { Product, ProductImage, Category } from '@/lib/supabase/types';
@@ -15,7 +15,10 @@ type ProductRow = Product & { product_images: ProductImage[]; categories: Catego
 export default async function ProductsPage({ params }: ProductsPageProps) {
   const { orgSlug } = await params;
   const org = await getOrgContext({ orgSlug });
-  const supabase = await createClient();
+  // Use admin client to bypass RLS — the admin route is already auth-gated
+  // via requireOrgAdmin in the layout, and we want to show ALL products
+  // (including inactive) so admins can edit/delete them.
+  const supabase = createAdminClient();
 
   const { data } = await supabase
     .from('products')

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getOrgContext } from '@/lib/org/context';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { formatPrice } from '@/lib/utils';
 import StatusPill from '@/components/admin/StatusPill';
 import type { Order, OrderStatus } from '@/lib/supabase/types';
@@ -23,7 +23,7 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
   const { orgSlug } = await params;
   const { status: filterStatus } = await searchParams;
   const org = await getOrgContext({ orgSlug });
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   let query = supabase
     .from('orders')

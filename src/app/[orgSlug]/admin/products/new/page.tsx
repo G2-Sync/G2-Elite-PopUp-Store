@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getOrgContext } from '@/lib/org/context';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import ProductForm from './_form';
 import type { Category } from '@/lib/supabase/types';
 
@@ -11,7 +11,7 @@ interface NewProductPageProps {
 export default async function NewProductPage({ params }: NewProductPageProps) {
   const { orgSlug } = await params;
   const org = await getOrgContext({ orgSlug });
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data } = await supabase
     .from('categories')

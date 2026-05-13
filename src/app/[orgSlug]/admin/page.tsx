@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getOrgContext } from '@/lib/org/context';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { formatPrice } from '@/lib/utils';
 import StatusPill from '@/components/admin/StatusPill';
 import type { Order } from '@/lib/supabase/types';
@@ -12,7 +12,7 @@ interface AdminPageProps {
 export default async function AdminDashboardPage({ params }: AdminPageProps) {
   const { orgSlug } = await params;
   const org = await getOrgContext({ orgSlug });
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // Parallel data fetches for stats
   const [productRes, orderRes, pendingRes, revenueRes, recentRes] = await Promise.all([

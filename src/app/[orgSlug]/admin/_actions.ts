@@ -1,11 +1,33 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOrgAdmin, isCurrentUserSuperAdmin } from '@/lib/auth/session';
 import { slugify } from '@/lib/utils';
 import type { OrderStatus, ProductImage } from '@/lib/supabase/types';
+
+/**
+ * Revalidate all admin pages for an org's URL prefix. Called from every
+ * mutation action so the UI reflects DB changes without a manual refresh.
+ *
+ * We accept orgId because we need to look up the slug. But we cache it via
+ * a small DB call. (Could be optimized later by passing orgSlug directly,
+ * but the lookup is cheap.)
+ */
+async function revalidateAdminPaths(orgId: string) {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from('organizations')
+    .select('slug')
+    .eq('id', orgId)
+    .maybeSingle();
+  const slug = (data as { slug: string } | null)?.slug;
+  if (!slug) return;
+  revalidatePath(`/${slug}/admin`, 'layout');
+  revalidatePath(`/${slug}`, 'layout'); // public storefront too
+}
 
 // ---------------------------------------------------------------------------
 // Shared
@@ -158,6 +180,7 @@ export async function updateProduct(
     await uploadProductImages(orgId, productId, validImages);
   }
 
+  await revalidateAdminPaths(orgId);
   return { ok: true, data: undefined };
 }
 
@@ -203,6 +226,7 @@ export async function deleteProduct(
 
   if (error) return { ok: false, error: error.message };
 
+  await revalidateAdminPaths(orgId);
   return { ok: true, data: undefined };
 }
 
@@ -234,6 +258,7 @@ export async function toggleProductActive(
 
   if (error) return { ok: false, error: error.message };
 
+  await revalidateAdminPaths(orgId);
   return { ok: true, data: undefined };
 }
 
@@ -294,6 +319,7 @@ export async function uploadProductImages(
     urls.push(publicUrl);
   }
 
+  await revalidateAdminPaths(orgId);
   return { ok: true, data: { urls } };
 }
 
@@ -353,6 +379,7 @@ export async function removeProductImage(
     }
   }
 
+  await revalidateAdminPaths(orgId);
   return { ok: true, data: undefined };
 }
 
@@ -385,6 +412,7 @@ export async function setPrimaryImage(
 
   if (error) return { ok: false, error: error.message };
 
+  await revalidateAdminPaths(orgId);
   return { ok: true, data: undefined };
 }
 
@@ -424,6 +452,7 @@ export async function createCategory(
 
   if (error || !data) return { ok: false, error: error?.message ?? 'Failed to create category.' };
 
+  await revalidateAdminPaths(orgId);
   return { ok: true, data: { id: data.id } };
 }
 
@@ -462,6 +491,7 @@ export async function updateCategory(
 
   if (error) return { ok: false, error: error.message };
 
+  await revalidateAdminPaths(orgId);
   return { ok: true, data: undefined };
 }
 
@@ -491,6 +521,7 @@ export async function deleteCategory(
 
   if (error) return { ok: false, error: error.message };
 
+  await revalidateAdminPaths(orgId);
   return { ok: true, data: undefined };
 }
 
@@ -540,6 +571,7 @@ export async function updateOrderStatus(
 
   if (error) return { ok: false, error: error.message };
 
+  await revalidateAdminPaths(orgId);
   return { ok: true, data: undefined };
 }
 
@@ -623,6 +655,7 @@ export async function updateOrgBranding(
     }
   }
 
+  await revalidateAdminPaths(orgId);
   return { ok: true, data: undefined };
 }
 

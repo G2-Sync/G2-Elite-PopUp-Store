@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getOrgContext } from '@/lib/org/context';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { formatPrice } from '@/lib/utils';
 import StatusPill from '@/components/admin/StatusPill';
 import OrderActions from './_actions-client';
@@ -32,7 +32,7 @@ const TRANSITION_LABELS: Partial<Record<OrderStatus, string>> = {
 export default async function OrderDetailPage({ params }: OrderDetailPageProps) {
   const { orgSlug, id } = await params;
   const org = await getOrgContext({ orgSlug });
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('orders')

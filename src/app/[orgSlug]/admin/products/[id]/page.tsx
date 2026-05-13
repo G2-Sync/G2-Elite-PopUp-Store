@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getOrgContext } from '@/lib/org/context';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import EditProductForm from './_form';
 import type { Category, Product, ProductImage } from '@/lib/supabase/types';
 
@@ -17,7 +17,9 @@ type ProductWithRelations = Product & {
 export default async function EditProductPage({ params }: EditProductPageProps) {
   const { orgSlug, id } = await params;
   const org = await getOrgContext({ orgSlug });
-  const supabase = await createClient();
+  // Use admin client — route is already auth-gated by admin/layout.tsx
+  // and we want to edit ANY product (active or inactive).
+  const supabase = createAdminClient();
 
   const [productRes, categoriesRes] = await Promise.all([
     supabase
