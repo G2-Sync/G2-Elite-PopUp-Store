@@ -16,6 +16,8 @@
 # next.js
 /.next/
 /out/
+# macOS Finder sometimes creates duplicates like ".next 2" — ignore those too
+.next*/
 
 # production
 /build

@@ -615,6 +615,29 @@ export async function deleteCategory(
 }
 
 // ---------------------------------------------------------------------------
+// deleteOrder — permanently removes an order + its line items (cascade)
+// ---------------------------------------------------------------------------
+
+export async function deleteOrder(
+  orgId: string,
+  orderId: string
+): Promise<ActionResult> {
+  await requireOrgAdmin(orgId);
+  const admin = createAdminClient();
+
+  const { error } = await admin
+    .from('orders')
+    .delete()
+    .eq('id', orderId)
+    .eq('organization_id', orgId);
+
+  if (error) return { ok: false, error: error.message };
+
+  await revalidateAdminPaths(orgId);
+  return { ok: true, data: undefined };
+}
+
+// ---------------------------------------------------------------------------
 // updateOrderStatus
 // ---------------------------------------------------------------------------
 

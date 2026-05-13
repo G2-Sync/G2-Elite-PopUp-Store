@@ -3,6 +3,7 @@ import { getOrgContext } from '@/lib/org/context';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { formatPrice } from '@/lib/utils';
 import StatusPill from '@/components/admin/StatusPill';
+import DeleteOrderButton from './_delete-button';
 import type { Order, OrderStatus } from '@/lib/supabase/types';
 
 interface OrdersPageProps {
@@ -121,12 +122,19 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
                     <StatusPill status={order.status} />
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/${orgSlug}/admin/orders/${order.id}`}
-                      className="text-xs font-medium text-zinc-700 hover:underline"
-                    >
-                      View
-                    </Link>
+                    <div className="flex items-center justify-end gap-4">
+                      <Link
+                        href={`/${orgSlug}/admin/orders/${order.id}`}
+                        className="text-xs font-medium text-zinc-700 hover:underline"
+                      >
+                        View
+                      </Link>
+                      <DeleteOrderButton
+                        orgId={org.id}
+                        orderId={order.id}
+                        orderNumber={order.order_number}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}
