@@ -1,46 +1,102 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
 /**
- * Middleware for per-org routes.
+ * Middleware — runs on every request that matches the config matcher.
  *
- * Extracts the first path segment as the org slug and forwards it as the
- * `x-org-slug` request header so downstream server components can read it
- * without re-parsing the URL.
+ * Responsibilities:
+ *   1. Refresh the Supabase auth session and propagate cookies back to the
+ *      client. Without this, sessions die between requests on production.
+ *      (Local dev sometimes works because cookies stay in memory longer.)
+ *   2. For per-org routes (/[orgSlug]/...), extract the slug into the
+ *      `x-org-slug` header so downstream server components can read it
+ *      without re-parsing the URL.
  *
- * Org existence is NOT validated here — that happens in the [orgSlug] layout
- * via getOrgContext(). Skipping the DB query in middleware keeps cold-start
- * latency low.
+ * Excluded paths (set in config.matcher below): static assets, Next.js
+ * internals, and the favicon. Everything else flows through here so auth
+ * cookies stay fresh.
  */
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+export async function middleware(request: NextRequest) {
+  // Start with a response that forwards request headers
+  let response = NextResponse.next({
+    request: { headers: new Headers(request.headers) },
+  });
 
-  // Extract the first path segment (e.g. "/acme/shop" → "acme")
+  // -------------------------------------------------------------------------
+  // Session refresh
+  // -------------------------------------------------------------------------
+  // Create a Supabase server client wired to read cookies from the request
+  // and write any refreshed cookies to the response.
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          // Update the request (so downstream getUser() sees fresh values)
+          cookiesToSet.forEach(({ name, value }) => {
+            request.cookies.set(name, value);
+          });
+          // Rebuild the response so the new cookies are written to it
+          response = NextResponse.next({
+            request: { headers: new Headers(request.headers) },
+          });
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+
+  // Touching getUser() triggers a refresh if the access token is close to
+  // expiring. Result is discarded — we just want the side effect (cookie set).
+  await supabase.auth.getUser();
+
+  // -------------------------------------------------------------------------
+  // Org slug forwarding (for /[orgSlug]/... paths only)
+  // -------------------------------------------------------------------------
+  const { pathname } = request.nextUrl;
   const segments = pathname.split('/').filter(Boolean);
   const orgSlug = segments[0] ?? '';
 
-  // Clone headers and attach the org slug for downstream reads
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-org-slug', orgSlug);
+  // Skip slug forwarding for reserved top-level paths
+  const RESERVED = new Set([
+    'super-admin',
+    'login',
+    'signup',
+    'logout',
+    'auth',
+    'api',
+    '_next',
+    'favicon.ico',
+  ]);
 
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
+  if (orgSlug && !RESERVED.has(orgSlug)) {
+    // Add the slug as a header on the request so the response includes it
+    const headers = new Headers(request.headers);
+    headers.set('x-org-slug', orgSlug);
+    response.headers.set('x-org-slug', orgSlug);
+  }
+
+  return response;
 }
 
 export const config = {
   matcher: [
     /*
-     * Match all paths EXCEPT:
-     *   - / (root)
-     *   - /super-admin and sub-paths
-     *   - /login
-     *   - /api routes
-     *   - /_next (Next.js internals)
+     * Match every path EXCEPT:
+     *   - /_next/static (build artifacts)
+     *   - /_next/image (Next.js image optimization)
      *   - /favicon.ico
-     *   - Static files (images, fonts, etc.)
+     *   - Anything with a file extension (.png, .jpg, .css, .js, etc.)
+     *
+     * This intentionally INCLUDES /super-admin, /login, /api so session
+     * refresh runs everywhere. Without it, auth dies on production.
      */
-    '/((?!$|super-admin|login|api|_next/static|_next/image|favicon\\.ico|.*\\..*).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|.*\\..*).*)',
   ],
 };
