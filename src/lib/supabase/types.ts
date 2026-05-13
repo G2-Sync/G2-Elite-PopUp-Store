@@ -90,6 +90,7 @@ export type Product = {
   category_id: string | null;
   stock: number;
   is_active: boolean;
+  sort_order: number;
   created_at: string;
   updated_at: string;
   // joined relations (optional — only present when selected)

@@ -14,6 +14,7 @@ interface ShopPageProps {
 type ProductWithImages = Product & { product_images: ProductImage[]; categories: Category | null };
 
 const SORT_OPTIONS = [
+  { value: 'featured', label: 'Featured' },
   { value: 'newest', label: 'Newest' },
   { value: 'price_asc', label: 'Price: Low to High' },
   { value: 'price_desc', label: 'Price: High to Low' },
@@ -52,13 +53,16 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
   }
 
   // Sort
-  const sortVal = (sort ?? 'newest') as SortValue;
+  const sortVal = (sort ?? 'featured') as SortValue;
   if (sortVal === 'price_asc') {
     query = query.order('price_cents', { ascending: true });
   } else if (sortVal === 'price_desc') {
     query = query.order('price_cents', { ascending: false });
-  } else {
+  } else if (sortVal === 'newest') {
     query = query.order('created_at', { ascending: false });
+  } else {
+    // 'featured' (default) — admin-controlled order via sort_order
+    query = query.order('sort_order', { ascending: true });
   }
 
   const { data: productsData } = await query;

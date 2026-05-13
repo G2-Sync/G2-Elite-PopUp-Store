@@ -83,6 +83,16 @@ export async function createProduct(
     return { ok: false, error: `A product with slug "${slug}" already exists in this store.` };
   }
 
+  // Place new products at the END of the list (highest existing sort_order + 10)
+  const { data: maxRow } = await admin
+    .from('products')
+    .select('sort_order')
+    .eq('organization_id', orgId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextSortOrder = ((maxRow as { sort_order: number } | null)?.sort_order ?? -10) + 10;
+
   const { data: product, error: insertError } = await admin
     .from('products')
     .insert({
@@ -94,6 +104,7 @@ export async function createProduct(
       category_id: categoryId,
       stock,
       is_active: isActive,
+      sort_order: nextSortOrder,
     })
     .select('id')
     .single();
@@ -257,6 +268,84 @@ export async function toggleProductActive(
     .eq('organization_id', orgId);
 
   if (error) return { ok: false, error: error.message };
+
+  await revalidateAdminPaths(orgId);
+  return { ok: true, data: undefined };
+}
+
+// ---------------------------------------------------------------------------
+// moveProduct — swap sort_order with the adjacent product in the list
+// ---------------------------------------------------------------------------
+
+export async function moveProduct(
+  orgId: string,
+  productId: string,
+  direction: 'up' | 'down'
+): Promise<ActionResult> {
+  await requireOrgAdmin(orgId);
+  const admin = createAdminClient();
+
+  // Current product
+  const { data: currentRaw, error: currentError } = await admin
+    .from('products')
+    .select('id, sort_order')
+    .eq('id', productId)
+    .eq('organization_id', orgId)
+    .single();
+
+  if (currentError || !currentRaw) {
+    return { ok: false, error: 'Product not found.' };
+  }
+  const current = currentRaw as { id: string; sort_order: number };
+
+  // Adjacent product on the desired side
+  let adjacentQuery = admin
+    .from('products')
+    .select('id, sort_order')
+    .eq('organization_id', orgId)
+    .neq('id', current.id);
+
+  if (direction === 'up') {
+    // Looking for the product just BEFORE this one (lower sort_order)
+    adjacentQuery = adjacentQuery
+      .lt('sort_order', current.sort_order)
+      .order('sort_order', { ascending: false });
+  } else {
+    // Looking for the product just AFTER this one (higher sort_order)
+    adjacentQuery = adjacentQuery
+      .gt('sort_order', current.sort_order)
+      .order('sort_order', { ascending: true });
+  }
+
+  const { data: adjacentRaw } = await adjacentQuery.limit(1).maybeSingle();
+  const adjacent = adjacentRaw as { id: string; sort_order: number } | null;
+
+  // Already at edge — no-op success
+  if (!adjacent) {
+    return { ok: true, data: undefined };
+  }
+
+  // Swap sort_order. Use a temporary value to be safe in case of any
+  // unique constraint that might be added later.
+  const TEMP = -1_000_000;
+
+  await admin
+    .from('products')
+    .update({ sort_order: TEMP })
+    .eq('id', current.id)
+    .eq('organization_id', orgId);
+
+  await admin
+    .from('products')
+    .update({ sort_order: current.sort_order })
+    .eq('id', adjacent.id)
+    .eq('organization_id', orgId);
+
+  await admin
+    .from('products')
+    .update({ sort_order: adjacent.sort_order })
+    .eq('id', current.id)
+    .eq('organization_id', orgId);
 
   await revalidateAdminPaths(orgId);
   return { ok: true, data: undefined };

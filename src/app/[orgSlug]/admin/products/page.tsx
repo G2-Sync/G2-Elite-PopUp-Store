@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { getOrgContext } from '@/lib/org/context';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { formatPrice } from '@/lib/utils';
-import { toggleProductActive, deleteProduct } from '../_actions';
+import { toggleProductActive, deleteProduct, moveProduct } from '../_actions';
 import type { Product, ProductImage, Category } from '@/lib/supabase/types';
 
 interface ProductsPageProps {
@@ -24,6 +24,7 @@ export default async function ProductsPage({ params }: ProductsPageProps) {
     .from('products')
     .select('*, product_images(*), categories(*)')
     .eq('organization_id', org.id)
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false });
 
   const products = (data ?? []) as ProductRow[];
@@ -56,6 +57,7 @@ export default async function ProductsPage({ params }: ProductsPageProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
+                <th className="px-2 py-3 w-16 text-center">Order</th>
                 <th className="px-4 py-3 w-16">Image</th>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Category</th>
@@ -71,12 +73,54 @@ export default async function ProductsPage({ params }: ProductsPageProps) {
                 const primaryImg =
                   product.product_images.find((img) => img.is_primary) ??
                   product.product_images[0];
+                const isFirst = i === 0;
+                const isLast = i === products.length - 1;
 
                 return (
                   <tr
                     key={product.id}
                     className={i % 2 === 1 ? 'bg-zinc-50' : 'bg-white'}
                   >
+                    {/* Order — up/down arrows */}
+                    <td className="px-2 py-3">
+                      <div className="flex flex-col items-center gap-1">
+                        <form
+                          action={async () => {
+                            'use server';
+                            await moveProduct(org.id, product.id, 'up');
+                          }}
+                        >
+                          <button
+                            type="submit"
+                            disabled={isFirst}
+                            title="Move up"
+                            className="flex h-5 w-5 items-center justify-center rounded text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                          >
+                            <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+                              <path fillRule="evenodd" d="M10 17a.75.75 0 0 1-.75-.75V5.612L5.29 9.77a.75.75 0 0 1-1.08-1.04l5.25-5.5a.75.75 0 0 1 1.08 0l5.25 5.5a.75.75 0 1 1-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0 1 10 17Z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        </form>
+                        <form
+                          action={async () => {
+                            'use server';
+                            await moveProduct(org.id, product.id, 'down');
+                          }}
+                        >
+                          <button
+                            type="submit"
+                            disabled={isLast}
+                            title="Move down"
+                            className="flex h-5 w-5 items-center justify-center rounded text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                          >
+                            <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+                              <path fillRule="evenodd" d="M10 3a.75.75 0 0 1 .75.75v10.638l3.96-4.158a.75.75 0 1 1 1.08 1.04l-5.25 5.5a.75.75 0 0 1-1.08 0l-5.25-5.5a.75.75 0 1 1 1.08-1.04l3.96 4.158V3.75A.75.75 0 0 1 10 3Z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+
                     {/* Thumbnail */}
                     <td className="px-4 py-3">
                       <div className="h-10 w-10 overflow-hidden rounded-md border border-zinc-200 bg-zinc-100">
