@@ -10,9 +10,14 @@ import { createServerClient } from '@supabase/ssr';
  * /login on the next page load.
  *
  * Pattern: https://supabase.com/docs/guides/auth/server-side/nextjs
- * (Verbatim from their official example, intentionally — keeps us aligned
- * with the supported configuration.)
  */
+
+/**
+ * Optional cookie domain override. See server.ts for the explanation —
+ * keep these two values in sync.
+ */
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN;
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -30,7 +35,10 @@ export async function middleware(request: NextRequest) {
           });
           supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) => {
-            supabaseResponse.cookies.set(name, value, options);
+            const finalOptions = COOKIE_DOMAIN
+              ? { ...options, domain: COOKIE_DOMAIN }
+              : options;
+            supabaseResponse.cookies.set(name, value, finalOptions);
           });
         },
       },
