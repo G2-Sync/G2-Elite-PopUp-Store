@@ -12,12 +12,6 @@ import { createServerClient } from '@supabase/ssr';
  * Pattern: https://supabase.com/docs/guides/auth/server-side/nextjs
  */
 
-/**
- * Optional cookie domain override. See server.ts for the explanation —
- * keep these two values in sync.
- */
-const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN;
-
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -25,11 +19,6 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      // Apply our cookie domain (e.g. .uabpractitionershop.com) so refresh
-      // cookies are scoped to apex + all subdomains. Without this, Vercel
-      // can quietly route the response through www and the cookie ends
-      // up only valid on that exact host.
-      cookieOptions: COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : undefined,
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -40,11 +29,13 @@ export async function middleware(request: NextRequest) {
           });
           supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) => {
-            const finalOptions = COOKIE_DOMAIN
-              ? { ...options, domain: COOKIE_DOMAIN }
-              : options;
-            console.log('[middleware setAll]', name, 'domain=', finalOptions.domain);
-            supabaseResponse.cookies.set(name, value, finalOptions);
+            console.log(
+              '[middleware setAll]',
+              name,
+              'options:',
+              JSON.stringify(options)
+            );
+            supabaseResponse.cookies.set(name, value, options);
           });
         },
       },
