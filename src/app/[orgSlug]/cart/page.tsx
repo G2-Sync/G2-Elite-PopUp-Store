@@ -67,10 +67,11 @@ export default function CartPage({ params }: CartPageProps) {
                       <button
                         type="button"
                         onClick={() => removeItem(item.productId)}
-                        className="flex-shrink-0 text-zinc-400 hover:text-red-500 transition-colors"
+                        className="flex-shrink-0 inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:border-red-400 hover:bg-red-100 hover:text-red-700"
                         aria-label={`Remove ${item.productName}`}
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={13} />
+                        Remove
                       </button>
                     </div>
 
