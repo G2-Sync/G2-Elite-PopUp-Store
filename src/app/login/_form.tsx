@@ -18,11 +18,13 @@ export default function LoginForm({ showSignupLink }: LoginFormProps) {
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
       const result = await loginAction(formData);
-      // If ok:true, the server action redirected — result won't be returned here.
-      // If ok:false, display the error.
       if (!result.ok) {
         setError(result.error);
+        return;
       }
+      // Hard navigation (full page reload) to make sure the newly-set
+      // auth cookies are picked up server-side on the next request.
+      window.location.assign(result.redirectTo);
     });
   }
 
