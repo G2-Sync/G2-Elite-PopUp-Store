@@ -24,8 +24,7 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       // Apply our domain at the client level so it gets baked into every
-      // cookie Supabase asks us to write. This is the canonical hook for
-      // controlling cookie scoping in @supabase/ssr.
+      // cookie Supabase asks us to write.
       cookieOptions: COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : undefined,
       cookies: {
         getAll() {
@@ -34,7 +33,16 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
+              // Belt-and-suspenders: force the domain again in case
+              // cookieOptions didn't propagate through every code path.
+              const finalOptions = COOKIE_DOMAIN
+                ? { ...options, domain: COOKIE_DOMAIN }
+                : options;
+              if (process.env.NODE_ENV !== 'development') {
+                // Temporary diagnostic — remove once auth is confirmed.
+                console.log('[supabase server setAll]', name, 'domain=', finalOptions.domain);
+              }
+              cookieStore.set(name, value, finalOptions);
             });
           } catch {
             // setAll called from a Server Component — cookies are read-only.

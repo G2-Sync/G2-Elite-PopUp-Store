@@ -40,7 +40,11 @@ export async function middleware(request: NextRequest) {
           });
           supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) => {
-            supabaseResponse.cookies.set(name, value, options);
+            const finalOptions = COOKIE_DOMAIN
+              ? { ...options, domain: COOKIE_DOMAIN }
+              : options;
+            console.log('[middleware setAll]', name, 'domain=', finalOptions.domain);
+            supabaseResponse.cookies.set(name, value, finalOptions);
           });
         },
       },
