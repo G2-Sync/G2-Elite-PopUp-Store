@@ -67,5 +67,15 @@ export async function GET() {
     user_email: userEmail,
     is_super_admin: isSuperAdmin,
     user_error: userError,
+    // Square env vars (presence + length, not values — these are secret)
+    square_environment: process.env.SQUARE_ENVIRONMENT ?? null,
+    square_application_id_set: !!process.env.SQUARE_APPLICATION_ID,
+    square_application_id_starts_with: process.env.SQUARE_APPLICATION_ID?.slice(0, 12) ?? null,
+    square_application_secret_set: !!process.env.SQUARE_APPLICATION_SECRET,
+    square_access_token_set: !!process.env.SQUARE_ACCESS_TOKEN,
+    square_access_token_length: process.env.SQUARE_ACCESS_TOKEN?.length ?? 0,
+    square_location_id_set: !!process.env.SQUARE_LOCATION_ID,
+    square_location_id_starts_with: process.env.SQUARE_LOCATION_ID?.slice(0, 3) ?? null,
+    next_public_square_app_id_set: !!process.env.NEXT_PUBLIC_SQUARE_APPLICATION_ID,
   });
 }
