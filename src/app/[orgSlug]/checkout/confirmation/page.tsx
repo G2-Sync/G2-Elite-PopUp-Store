@@ -133,10 +133,16 @@ export default async function ConfirmationPage({ params, searchParams }: Confirm
             <h2 className="mb-3 text-sm font-semibold text-zinc-900">Payment</h2>
             <div className="text-sm text-zinc-700 space-y-1">
               <p>
-                {providerLabel}{' '}
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                  Test Mode
-                </span>
+                {providerLabel}
+                {order.payment_id?.startsWith('test_') ? (
+                  <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                    Test Mode
+                  </span>
+                ) : (
+                  <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                    Live
+                  </span>
+                )}
               </p>
               {order.payment_id && (
                 <p className="font-mono text-xs text-zinc-400 break-all">{order.payment_id}</p>
@@ -144,11 +150,11 @@ export default async function ConfirmationPage({ params, searchParams }: Confirm
             </div>
           </div>
 
-          {/* Email note */}
-          <div className="rounded-xl border border-amber-100 bg-amber-50 p-4 text-sm text-amber-800">
-            A confirmation email will be sent to{' '}
-            <span className="font-medium">{order.customer_email}</span>{' '}
-            <span className="text-amber-600">(test mode — not actually sent)</span>.
+          {/* Email note — we don't actually send confirmation emails yet. */}
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
+            Order details for{' '}
+            <span className="font-medium text-zinc-900">{order.customer_email}</span>. Please save
+            your order number — automatic email confirmations aren&rsquo;t set up yet.
           </div>
 
           {/* Continue shopping */}
