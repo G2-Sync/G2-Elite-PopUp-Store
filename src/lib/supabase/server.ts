@@ -23,6 +23,10 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // Apply our domain at the client level so it gets baked into every
+      // cookie Supabase asks us to write. This is the canonical hook for
+      // controlling cookie scoping in @supabase/ssr.
+      cookieOptions: COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : undefined,
       cookies: {
         getAll() {
           return cookieStore.getAll();
@@ -30,10 +34,7 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
-              const finalOptions = COOKIE_DOMAIN
-                ? { ...options, domain: COOKIE_DOMAIN }
-                : options;
-              cookieStore.set(name, value, finalOptions);
+              cookieStore.set(name, value, options);
             });
           } catch {
             // setAll called from a Server Component — cookies are read-only.
