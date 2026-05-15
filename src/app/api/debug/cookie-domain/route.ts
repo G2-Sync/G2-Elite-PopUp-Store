@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { resolveSquareForOrg } from '@/lib/payments/routing';
 
 /**
  * Debug endpoint — TEMPORARY. Remove once auth is working.
@@ -53,6 +54,27 @@ export async function GET() {
     isSuperAdmin = !!data;
   }
 
+  // Check what mode resolveSquareForOrg returns for the uab-pop-up-store org
+  let squareMode: string | null = null;
+  let squareModeError: string | null = null;
+  try {
+    const adminClient = createAdminClient();
+    const { data: orgRow } = await adminClient
+      .from('organizations')
+      .select('id')
+      .eq('slug', 'uab-pop-up-store')
+      .maybeSingle();
+    const org = orgRow as { id: string } | null;
+    if (org) {
+      const charge = await resolveSquareForOrg(org.id);
+      squareMode = charge.mode;
+    } else {
+      squareModeError = 'org "uab-pop-up-store" not found';
+    }
+  } catch (err) {
+    squareModeError = err instanceof Error ? err.message : 'unknown';
+  }
+
   return NextResponse.json({
     // Env
     cookie_domain_value: cd ?? null,
@@ -77,5 +99,8 @@ export async function GET() {
     square_location_id_set: !!process.env.SQUARE_LOCATION_ID,
     square_location_id_starts_with: process.env.SQUARE_LOCATION_ID?.slice(0, 3) ?? null,
     next_public_square_app_id_set: !!process.env.NEXT_PUBLIC_SQUARE_APPLICATION_ID,
+    // Live routing check for uab-pop-up-store
+    square_mode_for_uab: squareMode,
+    square_mode_error: squareModeError,
   });
 }
