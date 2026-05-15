@@ -155,7 +155,6 @@ export default function CheckoutForm({
   if (items.length === 0) {
     return (
       <>
-        <SandboxBanner />
         <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-20 text-center sm:px-6">
           <p className="mb-4 text-zinc-500">Your cart is empty.</p>
           <Link href={`/${orgSlug}/shop`} className="text-sm font-medium text-zinc-700 underline">
@@ -244,7 +243,10 @@ export default function CheckoutForm({
         />
       )}
 
-      <SandboxBanner variant={showSquareCardForm ? 'square' : 'mock'} />
+      <SandboxBanner
+        variant={showSquareCardForm ? 'square' : 'mock'}
+        environment={squareEnv}
+      />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         <h1 className="mb-8 text-2xl font-bold tracking-tight text-zinc-900">Checkout</h1>
