@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useOrgCart } from '@/hooks/useOrgCart';
 import { formatPrice } from '@/lib/utils';
-import SandboxBanner from '@/components/SandboxBanner';
 
 interface CartPageProps {
   params: Promise<{ orgSlug: string }>;
@@ -18,7 +17,6 @@ export default function CartPage({ params }: CartPageProps) {
 
   return (
     <>
-      <SandboxBanner />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         <h1 className="mb-8 text-2xl font-bold tracking-tight text-zinc-900">Your Cart</h1>
 
