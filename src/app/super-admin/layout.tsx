@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { requireSuperAdmin } from '@/lib/auth/session';
 import { createClient } from '@/lib/supabase/server';
+import LogoutButton from '@/components/LogoutButton';
 import SuperAdminNav from '@/components/admin/SuperAdminNav';
 
 interface SuperAdminLayoutProps {
@@ -41,12 +42,7 @@ export default async function SuperAdminLayout({ children }: SuperAdminLayoutPro
             {user?.email && (
               <span className="hidden text-xs text-zinc-400 sm:block">{user.email}</span>
             )}
-            <Link
-              href="/logout"
-              className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50"
-            >
-              Sign out
-            </Link>
+            <LogoutButton className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50" />
           </div>
         </div>
       </header>

@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import { getCurrentUser, isCurrentUserSuperAdmin } from '@/lib/auth/session';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { resolveOrgBySlug } from '@/lib/org/resolve';
+import LogoutButton from '@/components/LogoutButton';
 
 /**
  * Domain → default org slug mapping.
@@ -121,9 +122,7 @@ export default async function RootPage() {
             <>
               Signed in as {user.email}
               {' · '}
-              <Link href="/logout" className="hover:text-zinc-700 underline-offset-2 hover:underline">
-                Sign out
-              </Link>
+              <LogoutButton className="hover:text-zinc-700 underline-offset-2 hover:underline bg-transparent border-0 p-0 text-xs text-zinc-400 cursor-pointer" />
             </>
           ) : (
             <Link href="/login" className="hover:text-zinc-700 underline-offset-2 hover:underline">

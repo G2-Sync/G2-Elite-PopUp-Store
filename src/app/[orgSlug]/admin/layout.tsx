@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { getOrgContext } from '@/lib/org/context';
 import { requireOrgAdmin } from '@/lib/auth/session';
 import AdminNav from '@/components/admin/AdminNav';
+import LogoutButton from '@/components/LogoutButton';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -51,12 +52,7 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
           >
             View Storefront &rarr;
           </Link>
-          <Link
-            href="/logout"
-            className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50"
-          >
-            Sign out
-          </Link>
+          <LogoutButton className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50" />
         </div>
       </header>
 
