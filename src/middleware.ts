@@ -19,6 +19,18 @@ import { createServerClient } from '@supabase/ssr';
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN;
 
 export async function middleware(request: NextRequest) {
+  // ---------------------------------------------------------------------
+  // Force www → non-www redirect at the app level.
+  // Backup for vercel.json — guarantees consistent domain regardless of
+  // CDN routing differences between GET and POST.
+  // ---------------------------------------------------------------------
+  const host = request.headers.get('host') ?? '';
+  if (host === 'www.uabpractitionershop.com') {
+    const url = request.nextUrl.clone();
+    url.host = 'uabpractitionershop.com';
+    return NextResponse.redirect(url, 308);
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
