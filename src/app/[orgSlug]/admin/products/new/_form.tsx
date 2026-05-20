@@ -19,6 +19,7 @@ export default function ProductForm({ orgId, orgSlug, categories }: ProductFormP
   const [slugOverride, setSlugOverride] = useState('');
   const [slugEdited, setSlugEdited] = useState(false);
   const [isActive, setIsActive] = useState(true);
+  const [hasSizes, setHasSizes] = useState(false);
   const [previews, setPreviews] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -49,9 +50,10 @@ export default function ProductForm({ orgId, orgSlug, categories }: ProductFormP
     e.preventDefault();
     setError(null);
     const formData = new FormData(e.currentTarget);
-    // Inject computed slug and active state
+    // Inject computed slug, active state, and size toggle
     formData.set('slug', computedSlug);
     formData.set('is_active', isActive ? 'true' : 'false');
+    formData.set('has_sizes', hasSizes ? 'true' : 'false');
     // Re-attach files (formData from the form already has them via the input)
     startTransition(async () => {
       const result = await createProduct(orgId, formData);
@@ -196,6 +198,24 @@ export default function ProductForm({ orgId, orgSlug, categories }: ProductFormP
             disabled={isPending}
           />
           <span className="text-sm text-zinc-700">Active (visible in storefront)</span>
+        </label>
+      </div>
+
+      {/* Has sizes toggle */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-medium text-zinc-700">Sizes</label>
+        <input type="hidden" name="has_sizes" value={hasSizes ? 'true' : 'false'} />
+        <label className="flex cursor-pointer items-center gap-2.5">
+          <input
+            type="checkbox"
+            checked={hasSizes}
+            onChange={(e) => setHasSizes(e.target.checked)}
+            className="h-4 w-4 rounded border-zinc-300"
+            disabled={isPending}
+          />
+          <span className="text-sm text-zinc-700">
+            This product has sizes (X-Small, Small, Medium, Large, X-Large)
+          </span>
         </label>
       </div>
 

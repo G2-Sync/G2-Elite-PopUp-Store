@@ -103,6 +103,9 @@ export default async function ConfirmationPage({ params, searchParams }: Confirm
                 <li key={item.id} className="flex justify-between text-sm">
                   <span className="text-zinc-700">
                     {item.product_name}
+                    {item.size && (
+                      <span className="ml-1 text-zinc-500">({item.size})</span>
+                    )}
                     <span className="ml-1 text-zinc-400">&times;{item.quantity}</span>
                   </span>
                   <span className="font-medium text-zinc-900">

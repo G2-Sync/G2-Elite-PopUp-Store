@@ -91,6 +91,7 @@ export type Product = {
   stock: number;
   is_active: boolean;
   sort_order: number;
+  has_sizes: boolean;
   created_at: string;
   updated_at: string;
   // joined relations (optional — only present when selected)
@@ -134,8 +135,14 @@ export type OrderItem = {
   product_name: string;
   quantity: number;
   unit_price_cents: number;
+  size: string | null;
   created_at: string;
 };
+
+// Allowed product sizes. Defined as a const so the storefront, admin form,
+// and validation all share the same list.
+export const PRODUCT_SIZES = ['X-Small', 'Small', 'Medium', 'Large', 'X-Large'] as const;
+export type ProductSize = (typeof PRODUCT_SIZES)[number];
 
 // ---------------------------------------------------------------------------
 // Database interface for @supabase/supabase-js generic typing

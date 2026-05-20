@@ -14,15 +14,28 @@ export type CartItem = {
   imageUrl: string | null;
   quantity: number;
   maxStock: number;
+  /** Selected size, or null if the product doesn't have sizes. */
+  size: string | null;
 };
 
 export type OrgCart = { items: CartItem[] };
 
+/** Build a stable key for a cart row. Same product in different sizes
+ * counts as separate rows. */
+function rowKey(productId: string, size: string | null): string {
+  return `${productId}::${size ?? ''}`;
+}
+
 type CartStore = {
   carts: Record<string, OrgCart>; // keyed by orgSlug
   addItem: (orgSlug: string, item: Omit<CartItem, 'quantity'>, quantity?: number) => void;
-  updateQuantity: (orgSlug: string, productId: string, quantity: number) => void;
-  removeItem: (orgSlug: string, productId: string) => void;
+  updateQuantity: (
+    orgSlug: string,
+    productId: string,
+    size: string | null,
+    quantity: number
+  ) => void;
+  removeItem: (orgSlug: string, productId: string, size: string | null) => void;
   clearCart: (orgSlug: string) => void;
   getCart: (orgSlug: string) => OrgCart;
   getItemCount: (orgSlug: string) => number;
@@ -41,7 +54,10 @@ export const useCartStore = create<CartStore>()(
       addItem(orgSlug, item, quantity = 1) {
         set((state) => {
           const existing = state.carts[orgSlug]?.items ?? [];
-          const idx = existing.findIndex((i) => i.productId === item.productId);
+          const key = rowKey(item.productId, item.size);
+          const idx = existing.findIndex(
+            (i) => rowKey(i.productId, i.size) === key
+          );
 
           let nextItems: CartItem[];
           if (idx !== -1) {
@@ -65,16 +81,19 @@ export const useCartStore = create<CartStore>()(
         });
       },
 
-      updateQuantity(orgSlug, productId, quantity) {
+      updateQuantity(orgSlug, productId, size, quantity) {
         set((state) => {
           const existing = state.carts[orgSlug]?.items ?? [];
+          const key = rowKey(productId, size);
           let nextItems: CartItem[];
 
           if (quantity <= 0) {
-            nextItems = existing.filter((i) => i.productId !== productId);
+            nextItems = existing.filter(
+              (i) => rowKey(i.productId, i.size) !== key
+            );
           } else {
             nextItems = existing.map((i) =>
-              i.productId === productId
+              rowKey(i.productId, i.size) === key
                 ? { ...i, quantity: Math.min(quantity, i.maxStock) }
                 : i
             );
@@ -89,13 +108,18 @@ export const useCartStore = create<CartStore>()(
         });
       },
 
-      removeItem(orgSlug, productId) {
+      removeItem(orgSlug, productId, size) {
         set((state) => {
           const existing = state.carts[orgSlug]?.items ?? [];
+          const key = rowKey(productId, size);
           return {
             carts: {
               ...state.carts,
-              [orgSlug]: { items: existing.filter((i) => i.productId !== productId) },
+              [orgSlug]: {
+                items: existing.filter(
+                  (i) => rowKey(i.productId, i.size) !== key
+                ),
+              },
             },
           };
         });
@@ -127,8 +151,8 @@ export const useCartStore = create<CartStore>()(
       },
     }),
     {
-      name: 'popup-cart-v1',
-      // Only persist carts; computed selectors re-derive from state
+      // Bumped key so old carts (without size) don't crash the new format.
+      name: 'popup-cart-v2',
       partialize: (state) => ({ carts: state.carts }),
     }
   )

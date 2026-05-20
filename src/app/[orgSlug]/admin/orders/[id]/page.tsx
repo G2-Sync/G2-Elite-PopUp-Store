@@ -81,6 +81,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
               <thead>
                 <tr className="border-b border-zinc-100 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
                   <th className="px-5 py-3">Product</th>
+                  <th className="px-5 py-3">Size</th>
                   <th className="px-5 py-3">Qty</th>
                   <th className="px-5 py-3">Unit price</th>
                   <th className="px-5 py-3 text-right">Line total</th>
@@ -90,6 +91,9 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                 {(order.order_items ?? []).map((item, i) => (
                   <tr key={item.id} className={i % 2 === 1 ? 'bg-zinc-50' : 'bg-white'}>
                     <td className="px-5 py-3 font-medium text-zinc-900">{item.product_name}</td>
+                    <td className="px-5 py-3 text-zinc-600">
+                      {item.size ?? <span className="text-zinc-300">—</span>}
+                    </td>
                     <td className="px-5 py-3 text-zinc-600">{item.quantity}</td>
                     <td className="px-5 py-3 text-zinc-600">{formatPrice(item.unit_price_cents)}</td>
                     <td className="px-5 py-3 text-right font-medium text-zinc-900">

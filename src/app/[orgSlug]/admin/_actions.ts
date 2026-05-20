@@ -55,6 +55,7 @@ export async function createProduct(
   const categoryId = (formData.get('category_id') as string | null)?.trim() || null;
   const stockStr = (formData.get('stock') as string | null)?.trim() ?? '0';
   const isActive = formData.get('is_active') !== 'false';
+  const hasSizes = formData.get('has_sizes') === 'true';
 
   if (!name) return { ok: false, error: 'Product name is required.' };
 
@@ -104,6 +105,7 @@ export async function createProduct(
       category_id: categoryId,
       stock,
       is_active: isActive,
+      has_sizes: hasSizes,
       sort_order: nextSortOrder,
     })
     .select('id')
@@ -147,6 +149,7 @@ export async function updateProduct(
   const categoryId = (formData.get('category_id') as string | null)?.trim() || null;
   const stockStr = (formData.get('stock') as string | null)?.trim() ?? '0';
   const isActive = formData.get('is_active') !== 'false';
+  const hasSizes = formData.get('has_sizes') === 'true';
 
   if (!name) return { ok: false, error: 'Product name is required.' };
 
@@ -178,7 +181,7 @@ export async function updateProduct(
 
   const { error } = await admin
     .from('products')
-    .update({ name, slug, description, price_cents, category_id: categoryId, stock, is_active: isActive })
+    .update({ name, slug, description, price_cents, category_id: categoryId, stock, is_active: isActive, has_sizes: hasSizes })
     .eq('id', productId)
     .eq('organization_id', orgId);
 

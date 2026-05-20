@@ -209,7 +209,11 @@ export default function CheckoutForm({
       customerName,
       customerEmail,
       shippingAddress,
-      items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+      items: items.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+        size: i.size,
+      })),
       provider,
       squareCardToken,
     });
@@ -446,9 +450,15 @@ export default function CheckoutForm({
 
                 <ul className="mb-4 space-y-3 text-sm">
                   {items.map((item) => (
-                    <li key={item.productId} className="flex justify-between gap-2">
+                    <li
+                      key={`${item.productId}::${item.size ?? ''}`}
+                      className="flex justify-between gap-2"
+                    >
                       <span className="text-zinc-700 leading-snug">
                         {item.productName}
+                        {item.size && (
+                          <span className="ml-1 text-zinc-500">({item.size})</span>
+                        )}
                         <span className="ml-1 text-zinc-400">&times;{item.quantity}</span>
                       </span>
                       <span className="flex-shrink-0 font-medium text-zinc-900">

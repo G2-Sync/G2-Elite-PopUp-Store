@@ -36,7 +36,7 @@ export default function CartPage({ params }: CartPageProps) {
             <div className="lg:col-span-2 space-y-4">
               {items.map((item) => (
                 <div
-                  key={item.productId}
+                  key={`${item.productId}::${item.size ?? ''}`}
                   className="flex gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm"
                 >
                   {/* Image */}
@@ -59,12 +59,17 @@ export default function CartPage({ params }: CartPageProps) {
                   {/* Details */}
                   <div className="flex flex-1 flex-col justify-between">
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-sm font-semibold text-zinc-900 leading-snug">
-                        {item.productName}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-zinc-900 leading-snug">
+                          {item.productName}
+                        </span>
+                        {item.size && (
+                          <span className="text-xs text-zinc-500">Size: {item.size}</span>
+                        )}
+                      </div>
                       <button
                         type="button"
-                        onClick={() => removeItem(item.productId)}
+                        onClick={() => removeItem(item.productId, item.size)}
                         className="flex-shrink-0 inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:border-red-400 hover:bg-red-100 hover:text-red-700"
                         aria-label={`Remove ${item.productName}`}
                       >
@@ -78,7 +83,9 @@ export default function CartPage({ params }: CartPageProps) {
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                          onClick={() =>
+                            updateQuantity(item.productId, item.size, item.quantity - 1)
+                          }
                           className="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 text-zinc-600 transition-colors hover:border-zinc-400 hover:text-zinc-900 disabled:opacity-40"
                           aria-label="Decrease quantity"
                         >
@@ -89,7 +96,9 @@ export default function CartPage({ params }: CartPageProps) {
                         </span>
                         <button
                           type="button"
-                          onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                          onClick={() =>
+                            updateQuantity(item.productId, item.size, item.quantity + 1)
+                          }
                           disabled={item.quantity >= item.maxStock}
                           className="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 text-zinc-600 transition-colors hover:border-zinc-400 hover:text-zinc-900 disabled:opacity-40"
                           aria-label="Increase quantity"

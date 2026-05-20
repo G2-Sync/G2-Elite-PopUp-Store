@@ -13,7 +13,7 @@ interface PlaceOrderInput {
   customerName: string;
   customerEmail: string;
   shippingAddress: ShippingAddress;
-  items: { productId: string; quantity: number }[];
+  items: { productId: string; quantity: number; size: string | null }[];
   provider: PaymentProvider;
   /**
    * Card token from the Square Web Payments SDK (only required when
@@ -74,11 +74,11 @@ export async function placeOrder(
   if (!input.shippingAddress.country.trim()) return { ok: false, error: 'Country is required.' };
   if (!input.items || input.items.length === 0) return { ok: false, error: 'Cart is empty.' };
 
-  // 3. Re-fetch products for authoritative price + stock
+  // 3. Re-fetch products for authoritative price + stock + size requirement
   const productIds = input.items.map((i) => i.productId);
   const { data: productsData, error: productsError } = await admin
     .from('products')
-    .select('id, name, price_cents, stock, is_active')
+    .select('id, name, price_cents, stock, is_active, has_sizes')
     .in('id', productIds)
     .eq('organization_id', orgId);
 
@@ -88,11 +88,17 @@ export async function placeOrder(
 
   const productMap = new Map(productsData.map((p) => [p.id, p]));
 
-  // 4. Stock check
+  // 4. Stock + size check
   for (const lineItem of input.items) {
     const product = productMap.get(lineItem.productId);
     if (!product || !product.is_active) {
       return { ok: false, error: 'Product not found or unavailable.' };
+    }
+    if (product.has_sizes && !lineItem.size) {
+      return {
+        ok: false,
+        error: `Please select a size for "${product.name}".`,
+      };
     }
     if (lineItem.quantity > product.stock) {
       return {
@@ -190,6 +196,7 @@ export async function placeOrder(
       product_name: product.name,
       quantity: lineItem.quantity,
       unit_price_cents: product.price_cents,
+      size: lineItem.size,
     };
   });
 

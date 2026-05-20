@@ -31,6 +31,7 @@ export default function EditProductForm({
   const [isPending, startTransition] = useTransition();
   const [images, setImages] = useState<ProductImage[]>(product.product_images ?? []);
   const [isActive, setIsActive] = useState(product.is_active);
+  const [hasSizes, setHasSizes] = useState(product.has_sizes);
   const [name, setName] = useState(product.name);
   const [slugVal, setSlugVal] = useState(product.slug);
   const [slugEdited, setSlugEdited] = useState(true); // pre-filled, so treat as edited
@@ -49,6 +50,7 @@ export default function EditProductForm({
     const formData = new FormData(e.currentTarget);
     formData.set('slug', slugVal);
     formData.set('is_active', isActive ? 'true' : 'false');
+    formData.set('has_sizes', hasSizes ? 'true' : 'false');
     startTransition(async () => {
       const result = await updateProduct(orgId, product.id, formData);
       if (result.ok) {
@@ -242,6 +244,24 @@ export default function EditProductForm({
             disabled={isPending}
           />
           <span className="text-sm text-zinc-700">Active (visible in storefront)</span>
+        </label>
+      </div>
+
+      {/* Has sizes toggle */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-medium text-zinc-700">Sizes</label>
+        <input type="hidden" name="has_sizes" value={hasSizes ? 'true' : 'false'} />
+        <label className="flex cursor-pointer items-center gap-2.5">
+          <input
+            type="checkbox"
+            checked={hasSizes}
+            onChange={(e) => setHasSizes(e.target.checked)}
+            className="h-4 w-4 rounded border-zinc-300"
+            disabled={isPending}
+          />
+          <span className="text-sm text-zinc-700">
+            This product has sizes (X-Small, Small, Medium, Large, X-Large)
+          </span>
         </label>
       </div>
 

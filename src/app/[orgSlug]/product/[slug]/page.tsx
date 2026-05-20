@@ -168,6 +168,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
               imageUrl={primaryImage?.url ?? null}
               maxStock={product.stock}
               isSoldOut={isSoldOut}
+              hasSizes={product.has_sizes}
             />
           </div>
         </div>
