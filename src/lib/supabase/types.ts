@@ -141,7 +141,14 @@ export type OrderItem = {
 
 // Allowed product sizes. Defined as a const so the storefront, admin form,
 // and validation all share the same list.
-export const PRODUCT_SIZES = ['X-Small', 'Small', 'Medium', 'Large', 'X-Large'] as const;
+export const PRODUCT_SIZES = [
+  'Small',
+  'Medium',
+  'Large',
+  'X-Large',
+  'XX-Large',
+  'XXX-Large',
+] as const;
 export type ProductSize = (typeof PRODUCT_SIZES)[number];
 
 // ---------------------------------------------------------------------------

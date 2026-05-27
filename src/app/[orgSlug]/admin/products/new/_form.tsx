@@ -214,7 +214,7 @@ export default function ProductForm({ orgId, orgSlug, categories }: ProductFormP
             disabled={isPending}
           />
           <span className="text-sm text-zinc-700">
-            This product has sizes (X-Small, Small, Medium, Large, X-Large)
+            This product has sizes (Small, Medium, Large, X-Large, XX-Large, XXX-Large)
           </span>
         </label>
       </div>
