@@ -228,13 +228,43 @@ export async function uploadOrgAsset(
 }
 
 // ---------------------------------------------------------------------------
+// findUserByEmail — search auth.users via the admin API
+// ---------------------------------------------------------------------------
+
+/**
+ * Look up a Supabase auth user by their email address.
+ *
+ * Uses auth.admin.listUsers with simple pagination. Fine at our scale
+ * (hundreds of users max); would want a server-side lookup table or RPC
+ * if user count grows into the thousands.
+ */
+async function findUserByEmail(
+  admin: ReturnType<typeof createAdminClient>,
+  email: string
+): Promise<{ id: string; email: string } | null> {
+  const target = email.trim().toLowerCase();
+  let page = 1;
+  // Safety cap so we don't loop forever
+  const MAX_PAGES = 20;
+  while (page <= MAX_PAGES) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 100 });
+    if (error || !data) return null;
+    const found = data.users.find((u) => u.email?.toLowerCase() === target);
+    if (found?.email) return { id: found.id, email: found.email };
+    if (data.users.length < 100) return null; // last page
+    page += 1;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // inviteOrgAdmin
 // ---------------------------------------------------------------------------
 
 export async function inviteOrgAdmin(
   orgId: string,
   email: string
-): Promise<ActionResult> {
+): Promise<ActionResult<{ existing: boolean }>> {
   await requireSuperAdmin();
   const admin = createAdminClient();
 
@@ -251,28 +281,47 @@ export async function inviteOrgAdmin(
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
   const redirectTo = `${siteUrl}/${org.slug}/admin`;
+  const trimmedEmail = email.trim().toLowerCase();
 
-  const { data: inviteData, error: inviteError } =
-    await admin.auth.admin.inviteUserByEmail(email, { redirectTo });
+  // First, check if a user with this email already exists in auth.users.
+  const existingUser = await findUserByEmail(admin, trimmedEmail);
 
-  if (inviteError) {
-    return {
-      ok: false,
-      error: inviteError.message.includes('already been registered')
-        ? 'That email is already registered. Use "Resend invite" or remove and re-invite.'
-        : inviteError.message,
-    };
+  let userId: string;
+  let isExisting = false;
+
+  if (existingUser) {
+    // User already has an auth account — just add them to the org and send
+    // them a password-reset link so they have a fresh way in.
+    isExisting = true;
+    userId = existingUser.id;
+
+    const { error: resetError } = await admin.auth.resetPasswordForEmail(
+      existingUser.email,
+      { redirectTo }
+    );
+    // Don't bail on email failure — membership is the more important part.
+    if (resetError) {
+      console.error('[inviteOrgAdmin] resetPasswordForEmail failed (proceeding):', resetError);
+    }
+  } else {
+    // Brand-new user — use Supabase's full invite flow.
+    const { data: inviteData, error: inviteError } =
+      await admin.auth.admin.inviteUserByEmail(trimmedEmail, { redirectTo });
+
+    if (inviteError || !inviteData.user) {
+      return {
+        ok: false,
+        error: inviteError?.message ?? 'Invite failed — no user returned.',
+      };
+    }
+    userId = inviteData.user.id;
   }
 
-  if (!inviteData.user) {
-    return { ok: false, error: 'Invite failed — no user returned.' };
-  }
-
-  // Insert into organization_members (upsert to be safe)
+  // Upsert the organization_members row.
   const { error: memberError } = await admin
     .from('organization_members')
     .upsert(
-      { organization_id: orgId, user_id: inviteData.user.id, role: 'admin' },
+      { organization_id: orgId, user_id: userId, role: 'admin' },
       { onConflict: 'organization_id,user_id' }
     );
 
@@ -280,50 +329,63 @@ export async function inviteOrgAdmin(
     return { ok: false, error: memberError.message };
   }
 
-  return { ok: true, data: undefined };
+  return { ok: true, data: { existing: isExisting } };
 }
 
 // ---------------------------------------------------------------------------
-// resendInvite
+// resendInvite — sends a fresh password-reset email to the existing admin
 // ---------------------------------------------------------------------------
 
 export async function resendInvite(orgId: string): Promise<ActionResult> {
   await requireSuperAdmin();
   const admin = createAdminClient();
 
-  // Find the existing admin member and their email via auth.admin.listUsers
-  const { data: members } = await admin
+  // Find the existing admin member
+  const { data: member } = await admin
     .from('organization_members')
     .select('user_id')
     .eq('organization_id', orgId)
     .eq('role', 'admin')
-    .limit(1)
     .maybeSingle();
 
-  if (!members) {
+  if (!member) {
     return { ok: false, error: 'No admin assigned to this organization.' };
   }
 
   const { data: userResponse, error: userError } = await admin.auth.admin.getUserById(
-    members.user_id
+    member.user_id
   );
 
   if (userError || !userResponse.user?.email) {
     return { ok: false, error: 'Could not retrieve admin email.' };
   }
 
-  // Remove the old member record and re-invite — this regenerates the invite link
-  const { error: deleteError } = await admin
-    .from('organization_members')
-    .delete()
-    .eq('organization_id', orgId)
-    .eq('user_id', members.user_id);
+  // Fetch org slug for the redirectTo URL
+  const { data: org } = await admin
+    .from('organizations')
+    .select('slug')
+    .eq('id', orgId)
+    .single();
 
-  if (deleteError) {
-    return { ok: false, error: deleteError.message };
+  if (!org) {
+    return { ok: false, error: 'Organization not found.' };
   }
 
-  return inviteOrgAdmin(orgId, userResponse.user.email);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+  const redirectTo = `${siteUrl}/${org.slug}/admin`;
+
+  // Send a password-reset email — the user can set/reset their password
+  // and land back in their admin area.
+  const { error: resetError } = await admin.auth.resetPasswordForEmail(
+    userResponse.user.email,
+    { redirectTo }
+  );
+
+  if (resetError) {
+    return { ok: false, error: resetError.message };
+  }
+
+  return { ok: true, data: undefined };
 }
 
 // ---------------------------------------------------------------------------

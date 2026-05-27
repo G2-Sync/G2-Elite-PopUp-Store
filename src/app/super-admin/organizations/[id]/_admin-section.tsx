@@ -26,9 +26,15 @@ export default function AdminSection({ orgId, adminUserId, adminEmail }: AdminSe
     startTransition(async () => {
       const result = await inviteOrgAdmin(orgId, email);
       if (result.ok) {
-        setSuccess(`Invite sent to ${email}.`);
+        // Different wording depending on whether the user already had
+        // an account (in which case they got a password-reset email) vs
+        // brand-new (a full invite-and-set-password email).
+        setSuccess(
+          result.data.existing
+            ? `${email} is already registered — sent them a password-reset email and granted admin access.`
+            : `Invite email sent to ${email}.`
+        );
         setLocalAdminEmail(email);
-        // We don't know the new userId here — the page will show re-send/remove after refresh
       } else {
         setError(result.error);
       }
@@ -41,7 +47,7 @@ export default function AdminSection({ orgId, adminUserId, adminEmail }: AdminSe
     startTransition(async () => {
       const result = await resendInvite(orgId);
       if (result.ok) {
-        setSuccess('Invite resent.');
+        setSuccess('Password-reset email sent to the current admin.');
       } else {
         setError(result.error);
       }
