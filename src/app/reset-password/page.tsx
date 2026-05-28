@@ -12,8 +12,16 @@ import ResetPasswordForm from './_form';
  * If there's no session (expired or invalid link), we show a friendly
  * message + link to request a new one.
  */
-export default async function ResetPasswordPage() {
+interface ResetPasswordPageProps {
+  searchParams: Promise<{ dest?: string }>;
+}
+
+export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
   const user = await getCurrentUser();
+  const { dest } = await searchParams;
+  // Only accept same-site relative paths as a destination (security).
+  const safeDest =
+    dest && dest.startsWith('/') && !dest.startsWith('//') ? dest : null;
 
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-16">
@@ -26,7 +34,7 @@ export default async function ResetPasswordPage() {
         </p>
 
         {user ? (
-          <ResetPasswordForm email={user.email ?? ''} />
+          <ResetPasswordForm email={user.email ?? ''} dest={safeDest} />
         ) : (
           <div className="space-y-4">
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">

@@ -5,9 +5,12 @@ import { setPasswordAction } from './_action';
 
 interface ResetPasswordFormProps {
   email: string;
+  /** Optional destination to send the user to after they set a password.
+   * Used when invited to a specific org so they land on that org's admin. */
+  dest: string | null;
 }
 
-export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
+export default function ResetPasswordForm({ email, dest }: ResetPasswordFormProps) {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +30,7 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
     }
 
     startTransition(async () => {
-      const result = await setPasswordAction(password);
+      const result = await setPasswordAction(password, dest);
       if (!result.ok) {
         setError(result.error);
         return;

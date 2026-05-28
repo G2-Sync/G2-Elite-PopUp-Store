@@ -15,7 +15,10 @@ export type SetPasswordResult =
  * Requires an active session — which the user has after clicking the
  * invite / password-reset email link and passing through /auth/callback.
  */
-export async function setPasswordAction(password: string): Promise<SetPasswordResult> {
+export async function setPasswordAction(
+  password: string,
+  dest: string | null
+): Promise<SetPasswordResult> {
   if (password.length < 8) {
     return { ok: false, error: 'Password must be at least 8 characters.' };
   }
@@ -37,7 +40,13 @@ export async function setPasswordAction(password: string): Promise<SetPasswordRe
     return { ok: false, error: error.message };
   }
 
-  // Decide where to send them based on their role.
+  // If the invite specified a destination (e.g. the org admin they were
+  // invited to), honor it — but only same-site relative paths.
+  if (dest && dest.startsWith('/') && !dest.startsWith('//')) {
+    return { ok: true, redirectTo: dest };
+  }
+
+  // Otherwise decide where to send them based on their role.
   const admin = createAdminClient();
 
   const { data: sa } = await admin
