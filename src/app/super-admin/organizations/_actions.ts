@@ -280,7 +280,9 @@ export async function inviteOrgAdmin(
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
-  const redirectTo = `${siteUrl}/${org.slug}/admin`;
+  // Route through /auth/callback (exchanges the code for a session) then to
+  // /reset-password (where the user actually sets their password).
+  const redirectTo = `${siteUrl}/auth/callback?next=/reset-password`;
   const trimmedEmail = email.trim().toLowerCase();
 
   // First, check if a user with this email already exists in auth.users.
@@ -372,7 +374,9 @@ export async function resendInvite(orgId: string): Promise<ActionResult> {
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
-  const redirectTo = `${siteUrl}/${org.slug}/admin`;
+  // Route through /auth/callback (exchanges the code for a session) then to
+  // /reset-password (where the user actually sets their password).
+  const redirectTo = `${siteUrl}/auth/callback?next=/reset-password`;
 
   // Send a password-reset email — the user can set/reset their password
   // and land back in their admin area.
