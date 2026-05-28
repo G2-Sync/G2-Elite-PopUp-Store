@@ -244,15 +244,19 @@ async function findUserByEmail(
 ): Promise<{ id: string; email: string } | null> {
   const target = email.trim().toLowerCase();
   let page = 1;
-  // Safety cap so we don't loop forever
   const MAX_PAGES = 20;
-  while (page <= MAX_PAGES) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 100 });
-    if (error || !data) return null;
-    const found = data.users.find((u) => u.email?.toLowerCase() === target);
-    if (found?.email) return { id: found.id, email: found.email };
-    if (data.users.length < 100) return null; // last page
-    page += 1;
+  try {
+    while (page <= MAX_PAGES) {
+      const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 100 });
+      if (error || !data?.users) return null;
+      const found = data.users.find((u) => u.email?.toLowerCase() === target);
+      if (found?.email) return { id: found.id, email: found.email };
+      if (data.users.length < 100) return null; // last page
+      page += 1;
+    }
+  } catch (err) {
+    console.error('[findUserByEmail] failed:', err);
+    return null;
   }
   return null;
 }
@@ -288,38 +292,50 @@ export async function inviteOrgAdmin(
   const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(dest)}`;
   const trimmedEmail = email.trim().toLowerCase();
 
-  // First, check if a user with this email already exists in auth.users.
-  const existingUser = await findUserByEmail(admin, trimmedEmail);
-
-  let userId: string;
+  let userId: string | null = null;
   let isExisting = false;
 
-  if (existingUser) {
-    // User already has an auth account — just add them to the org and send
-    // them a password-reset link so they have a fresh way in.
+  // Try the full invite flow first (best UX for brand-new users).
+  const { data: inviteData, error: inviteError } =
+    await admin.auth.admin.inviteUserByEmail(trimmedEmail, { redirectTo });
+
+  if (inviteData?.user) {
+    // Brand-new user invited successfully.
+    userId = inviteData.user.id;
+  } else if (
+    inviteError &&
+    /already.*registered|already.*exists|email.*exists/i.test(inviteError.message)
+  ) {
+    // User already has an auth account. Look them up, then send a
+    // password-reset email so they have a fresh way in.
     isExisting = true;
+    const existingUser = await findUserByEmail(admin, trimmedEmail);
+    if (!existingUser) {
+      return {
+        ok: false,
+        error:
+          'That email is already registered but could not be located. Try again, or delete the user in Supabase and re-invite.',
+      };
+    }
     userId = existingUser.id;
 
     const { error: resetError } = await admin.auth.resetPasswordForEmail(
       existingUser.email,
       { redirectTo }
     );
-    // Don't bail on email failure — membership is the more important part.
     if (resetError) {
       console.error('[inviteOrgAdmin] resetPasswordForEmail failed (proceeding):', resetError);
     }
   } else {
-    // Brand-new user — use Supabase's full invite flow.
-    const { data: inviteData, error: inviteError } =
-      await admin.auth.admin.inviteUserByEmail(trimmedEmail, { redirectTo });
+    // Some other error.
+    return {
+      ok: false,
+      error: inviteError?.message ?? 'Invite failed — no user returned.',
+    };
+  }
 
-    if (inviteError || !inviteData.user) {
-      return {
-        ok: false,
-        error: inviteError?.message ?? 'Invite failed — no user returned.',
-      };
-    }
-    userId = inviteData.user.id;
+  if (!userId) {
+    return { ok: false, error: 'Invite failed — could not resolve user.' };
   }
 
   // Upsert the organization_members row.
