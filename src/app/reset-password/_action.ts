@@ -40,24 +40,18 @@ export async function setPasswordAction(
     return { ok: false, error: error.message };
   }
 
-  // If the invite specified a destination (e.g. the org admin they were
-  // invited to), honor it — but only same-site relative paths.
+  // 1. Honor an explicit destination from the invite (most precise) —
+  //    same-site relative paths only.
   if (dest && dest.startsWith('/') && !dest.startsWith('//')) {
     return { ok: true, redirectTo: dest };
   }
 
-  // Otherwise decide where to send them based on their role.
   const admin = createAdminClient();
 
-  const { data: sa } = await admin
-    .from('super_admins')
-    .select('user_id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-  if (sa) {
-    return { ok: true, redirectTo: '/super-admin' };
-  }
-
+  // 2. Prefer org-admin routing. This flow is only ever reached by people
+  //    who clicked an invite/reset email, and invited org admins always
+  //    have a membership. We check this BEFORE super-admin so that a
+  //    super-admin who is also an org admin lands on their org dashboard.
   const { data: member } = await admin
     .from('organization_members')
     .select('organization_id')
@@ -75,6 +69,16 @@ export async function setPasswordAction(
     if (org?.slug) {
       return { ok: true, redirectTo: `/${org.slug}/admin` };
     }
+  }
+
+  // 3. No org membership — fall back to super-admin if applicable.
+  const { data: sa } = await admin
+    .from('super_admins')
+    .select('user_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (sa) {
+    return { ok: true, redirectTo: '/super-admin' };
   }
 
   return { ok: true, redirectTo: '/' };
