@@ -78,6 +78,7 @@ export default async function ReportsPage({ params }: ReportsPageProps) {
       unit_price_cents,
       product_id,
       product_name,
+      size,
       orders!inner ( id, status, organization_id ),
       products ( id, name, categories ( name ) )
     `
@@ -100,6 +101,7 @@ export default async function ReportsPage({ params }: ReportsPageProps) {
     unit_price_cents: number;
     product_id: string | null;
     product_name: string;
+    size: string | null;
     orders: { id: string; status: OrderStatusKey } | { id: string; status: OrderStatusKey }[] | null;
     products:
       | { id: string; name: string; categories: { name: string } | null | { name: string }[] }
@@ -107,6 +109,62 @@ export default async function ReportsPage({ params }: ReportsPageProps) {
       | null;
   };
   const rows = (data ?? []) as unknown as RawRow[];
+
+  // -------------------------------------------------------------------------
+  // Product + Size breakdown (revenue-realized statuses only)
+  // -------------------------------------------------------------------------
+  type SizeRow = {
+    productName: string;
+    size: string;
+    units: number;
+    revenueCents: number;
+  };
+  const bySizeKey = new Map<string, SizeRow>();
+
+  for (const row of rows) {
+    const order = Array.isArray(row.orders) ? row.orders[0] : row.orders;
+    const product = Array.isArray(row.products) ? row.products[0] : row.products;
+    if (!order) continue;
+
+    const productName = product?.name ?? row.product_name ?? '(deleted product)';
+    const size = row.size ?? '—';
+    const key = `${productName}::${size}`;
+
+    if (!bySizeKey.has(key)) {
+      bySizeKey.set(key, { productName, size, units: 0, revenueCents: 0 });
+    }
+    const sr = bySizeKey.get(key)!;
+    sr.units += row.quantity;
+    if (order.status === 'paid' || order.status === 'shipped' || order.status === 'fulfilled') {
+      sr.revenueCents += row.quantity * row.unit_price_cents;
+    }
+  }
+
+  // Order sizes consistently (known sizes first in canonical order, then any
+  // others alphabetically, with the no-size "—" bucket last).
+  const SIZE_ORDER = ['Small', 'Medium', 'Large', 'X-Large', 'XX-Large', 'XXX-Large'];
+  function sizeRank(size: string): number {
+    const idx = SIZE_ORDER.indexOf(size);
+    if (idx !== -1) return idx;
+    if (size === '—') return 999;
+    return 500; // unknown sizes between known and the no-size bucket
+  }
+
+  const sizeRows = Array.from(bySizeKey.values()).sort((a, b) => {
+    // Group by product name, then by size order within each product
+    if (a.productName !== b.productName) {
+      return a.productName.localeCompare(b.productName);
+    }
+    const ra = sizeRank(a.size);
+    const rb = sizeRank(b.size);
+    if (ra !== rb) return ra - rb;
+    return a.size.localeCompare(b.size);
+  });
+
+  const sizeGrand = sizeRows.reduce(
+    (acc, r) => ({ units: acc.units + r.units, revenueCents: acc.revenueCents + r.revenueCents }),
+    { units: 0, revenueCents: 0 }
+  );
 
   // Aggregate into per-product stats
   const byProduct = new Map<string, ProductStats>();
@@ -282,6 +340,79 @@ export default async function ReportsPage({ params }: ReportsPageProps) {
       <p className="mt-4 text-xs text-zinc-400">
         Revenue counts only orders at <strong>paid</strong>, <strong>shipped</strong>, or{' '}
         <strong>fulfilled</strong> status (excludes cancelled + refunded).
+      </p>
+
+      {/* ===================================================================
+          Sales by Product & Size
+          =================================================================== */}
+      <div className="mt-12 mb-6">
+        <h2 className="text-xl font-bold tracking-tight text-zinc-900">Sales by Product &amp; Size</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Units sold and revenue, broken out by size within each product.
+          Sorted by product, then size.
+        </p>
+      </div>
+
+      {sizeRows.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-zinc-300 bg-white py-16 text-center">
+          <p className="text-sm text-zinc-500">No sales yet.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
+          <table className="w-full text-sm">
+            <thead className="border-b border-zinc-200 bg-zinc-50 text-left text-xs uppercase tracking-wider text-zinc-500">
+              <tr>
+                <th className="px-4 py-3 font-semibold">Product</th>
+                <th className="px-4 py-3 font-semibold">Size</th>
+                <th className="px-4 py-3 text-right font-semibold">Units sold</th>
+                <th className="px-4 py-3 text-right font-semibold">Revenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sizeRows.map((r, i) => {
+                // Show the product name only on the first row of each product
+                // group for a cleaner sequenced look.
+                const isFirstOfProduct =
+                  i === 0 || sizeRows[i - 1].productName !== r.productName;
+                return (
+                  <tr
+                    key={`${r.productName}::${r.size}`}
+                    className="border-b border-zinc-100 even:bg-zinc-50/30"
+                  >
+                    <td className="px-4 py-3 font-medium text-zinc-900">
+                      {isFirstOfProduct ? r.productName : ''}
+                    </td>
+                    <td className="px-4 py-3 text-zinc-600">{r.size}</td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-zinc-700">
+                      {r.units}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-zinc-900">
+                      {formatPrice(r.revenueCents)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot className="border-t-2 border-zinc-300 bg-zinc-50 font-semibold">
+              <tr>
+                <td className="px-4 py-3 text-zinc-500" colSpan={2}>
+                  Total
+                </td>
+                <td className="px-4 py-3 text-right font-mono text-xs text-zinc-900">
+                  {sizeGrand.units}
+                </td>
+                <td className="px-4 py-3 text-right text-sm text-zinc-900">
+                  {formatPrice(sizeGrand.revenueCents)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+
+      <p className="mt-4 text-xs text-zinc-400">
+        &ldquo;—&rdquo; in the Size column means the product has no sizes.
+        Revenue counts only paid / shipped / fulfilled orders.
       </p>
     </main>
   );
